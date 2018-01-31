@@ -189,20 +189,23 @@ public class CLI extends CLIBase2 {
 //		System.out.println("DL-Learner " + Info.build + " [TODO: read pom.version and put it here (make sure that the code for getting the version also works in the release build!)] command line interface");
 		System.out.println("DL-Learner command line interface");
 		
+		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/test.conf");
+		
 		// currently, CLI has exactly one parameter - the conf file
 		if(args.length == 0) {
-			System.out.println("You need to give a conf file as argument.");
+			System.out.println("No argument found for the conf file, using default: " + conf);
 			System.exit(0);
+		}else {
+			// read file and print and print a message if it does not exist
+			conf = new File(args[args.length - 1]);
+			if(!conf.exists()) {
+				System.out.println("File \"" + conf + "\" does not exist.");
+				System.exit(0);
+			}
 		}
 		
-		// read file and print and print a message if it does not exist
-		File file = new File(args[args.length - 1]);
-		if(!file.exists()) {
-			System.out.println("File \"" + file + "\" does not exist.");
-			System.exit(0);
-		}
 		
-		Resource confFile = new FileSystemResource(file);
+		Resource confFile = new FileSystemResource(conf);
 		
 		List<Resource> springConfigResources = new ArrayList<>();
 
@@ -223,7 +226,7 @@ public class CLI extends CLIBase2 {
                 cli = new CLI();
             }
             cli.setContext(context);
-            cli.setConfFile(file);
+            cli.setConfFile(conf);
             cli.run();
         } catch (Exception e) {
             String stacktraceFileName = "log/error.log";

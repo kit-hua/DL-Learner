@@ -1138,6 +1138,7 @@ public class OCEL extends AbstractCELA {
 
 		long totalTimeNeeded = System.currentTimeMillis() - this.runtime;
 		long maxMilliSeconds = maxExecutionTimeInSeconds * 1000;
+		//long maxMilliSeconds = 1000 * 1000;
 		long minMilliSeconds = minExecutionTimeInSeconds * 1000;
 		int conceptTests = conceptTestsReasoner + conceptTestsTooWeakList + conceptTestsOverlyGeneralList;
 		boolean result = false;
