@@ -401,6 +401,8 @@ public class OCEL extends AbstractCELA {
 		redundancyCheckTimeNs = 0;
 		evaluateSetCreationTimeNs = 0;
 		improperConceptsRemovalTimeNs = 0;
+		
+		nanoStartTime = System.nanoTime();
 
 		Monitor totalLearningTime = JamonMonitorLogger.getTimeMonitor(OCEL.class, "totalLearningTime").start();
 		// TODO: write a JUnit test for this problem (long-lasting or infinite loops because
@@ -443,6 +445,7 @@ public class OCEL extends AbstractCELA {
 		long reductionInterval = 300L * 1000000000L;
 		long currentTime;
 
+		
 		while (!isTerminationCriteriaReached()) {
 			// print statistics at most once a second
 			currentTime = System.nanoTime();
@@ -470,7 +473,10 @@ public class OCEL extends AbstractCELA {
 					.getCovPosMinusCovNeg()) {
 				String acc = new DecimalFormat(".00%").format((searchTreeStable.best().getAccuracy()));
 				// no handling needed, it will just look ugly in the output
-				logger.info("more accurate (" + acc + ") class expression found: " + renderer.render(searchTreeStable.best().getConcept()));
+				long durationInMillis = getCurrentRuntimeInMilliSeconds();
+				String durationStr = getDurationAsString(durationInMillis);
+				logger.info("more accurate (" + acc + ") class expression found after: " + durationStr + ": " + renderer.render(searchTreeStable.best().getConcept()));
+//				logger.info("more accurate (" + dfPercent.format(currentHighestAccuracy) + ") class expression found after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
 				if (logger.isTraceEnabled()) {
 					logger.trace(Sets.difference(positiveExamples, bestNodeStable.getCoveredNegatives()).toString());
 					logger.trace(Sets.difference(negativeExamples, bestNodeStable.getCoveredNegatives()).toString());
@@ -488,6 +494,8 @@ public class OCEL extends AbstractCELA {
 			extendNodeProper(bestNode, bestNode.getHorizontalExpansion() + 1);
 			searchTree.updateDone(bestNode);
 			previousBestNode = bestNode;
+			
+//			logger.info(descriptionToString(bestNode.getConcept()));
 
 			if (writeSearchTree) {
 				// String treeString = "";
@@ -510,10 +518,32 @@ public class OCEL extends AbstractCELA {
 
 			// Anzahl Schleifendurchläufe
 			loop++;
-		}// end while
+			
+			if(solutions.size() > 0) {
+				int nrOfSolutions = solutions.size();
+				int i = 0;
+				for (ExampleBasedNode n : searchTreeStable.descendingSet()) {
+					if(n.getAccuracy() == 1.0) {
+						logger.info(renderer.render(n.getConcept())
+						+ " (accuracy " + df.format(100 * n.getAccuracy()) + "%, length "
+						+ OWLClassExpressionUtils.getLength(n.getConcept())
+						+ ", depth " + OWLClassExpressionUtils.getDepth(n.getConcept()) + ")");
+						break;
+					}										
+					if (i == nrOfSolutions)
+						break;
+					i++;					
+				}
+				this.stop = true;
+				totalLearningTime.stop();
+				isRunning = false;
+				System.out.println("Totally " + loop + " iterations required!");
+				System.out.println("--------------------------\n\n");
+			}			
+		}// end while		
 
-		if (solutions.size() > 0) {
-			int solutionLimit = 20;
+		int solutionLimit = 10;
+		if (solutions.size() > 0) {			
 			// we do not need to print the best node if we display the top 20 solutions below anyway
 			logger.info("solutions (at most " + solutionLimit + " are shown):");
 			int show = 1;
@@ -530,22 +560,26 @@ public class OCEL extends AbstractCELA {
 		} else {
 			logger.info("no appropriate solutions found (try increasing the noisePercentage parameter to what was reported as most accurate expression found above)");
 		}
-
-		logger.debug("size of candidate set: " + searchTree.size());
-		printBestSolutions(20);
-
-		printStatistics(true);
-
+//
+//		logger.debug("size of candidate set: " + searchTree.size());
+		printBestSolutions(solutionLimit);
+//
+//		printStatistics(true);
+//
 		int conceptTests = conceptTestsReasoner + conceptTestsTooWeakList + conceptTestsOverlyGeneralList;
 		if (stop) {
 			logger.info("Algorithm stopped (" + conceptTests + " descriptions tested).\n");
+			logger.info(reasoner.toString());
 		} else {
 			logger.info("Algorithm terminated successfully (" + conceptTests + " descriptions tested).\n");
 			logger.info(reasoner.toString());
 		}
-
-		totalLearningTime.stop();
-		isRunning = false;
+		
+		System.out.println("nr of nodes: " + searchTree.size());
+//
+//		totalLearningTime.stop();
+//		isRunning = false;
+//		System.out.println("Totally " + loop + " iterations required!");
 	}
 
 	// we apply the operator recursively until all proper refinements up
@@ -1137,12 +1171,13 @@ public class OCEL extends AbstractCELA {
 		}
 
 		long totalTimeNeeded = System.currentTimeMillis() - this.runtime;
-		long maxMilliSeconds = maxExecutionTimeInSeconds * 1000;
+		long maxMilliSeconds = maxExecutionTimeInSeconds; // * 1000;
 		//long maxMilliSeconds = 1000 * 1000;
 		long minMilliSeconds = minExecutionTimeInSeconds * 1000;
 		int conceptTests = conceptTestsReasoner + conceptTestsTooWeakList + conceptTestsOverlyGeneralList;
 		boolean result = false;
 
+//		System.out.println("max time:  " + maxMilliSeconds);
 		//ignore default
 		if (maxExecutionTimeInSeconds == 0)
 			result = false;

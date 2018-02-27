@@ -97,7 +97,10 @@ public abstract class AbstractCELA extends AbstractComponent implements ClassExp
 	private boolean useMinimizer = true;
 	
 	@ConfigOption(defaultValue = "10", description = "maximum execution of the algorithm in seconds")
-	protected long maxExecutionTimeInSeconds = 10;
+	protected long maxExecutionTimeInSeconds = 3;
+	
+	@ConfigOption(defaultValue = "100", description = "maximum execution of the algorithm in milliseconds")
+	protected long maxExecutionTimeInMilliSeconds = 100;
 
 	/**
 	 * The learning problem variable, which must be used by
@@ -370,6 +373,7 @@ public abstract class AbstractCELA extends AbstractComponent implements ClassExp
 			}
 			current++;
 		}
+		
 		return str;
 	}
 	
@@ -458,7 +462,8 @@ public abstract class AbstractCELA extends AbstractComponent implements ClassExp
 	}
 	
 	protected boolean isTimeExpired() {
-		return getCurrentRuntimeInMilliSeconds() >= TimeUnit.SECONDS.toMillis(maxExecutionTimeInSeconds);
+//		return getCurrentRuntimeInMilliSeconds() >= TimeUnit.SECONDS.toMillis(maxExecutionTimeInSeconds);
+		return getCurrentRuntimeInMilliSeconds() >= maxExecutionTimeInMilliSeconds;
 	}
 
 	protected long getCurrentRuntimeInMilliSeconds() {
@@ -466,7 +471,8 @@ public abstract class AbstractCELA extends AbstractComponent implements ClassExp
 	}
 
 	protected long getRemainingRuntimeInMilliseconds() {
-		return Math.max(0, TimeUnit.SECONDS.toMillis(maxExecutionTimeInSeconds) - getCurrentRuntimeInMilliSeconds());
+//		return Math.max(0, TimeUnit.SECONDS.toMillis(maxExecutionTimeInSeconds) - getCurrentRuntimeInMilliSeconds());
+		return Math.max(0, maxExecutionTimeInMilliSeconds - getCurrentRuntimeInMilliSeconds());
 	}
 	
 	protected String getDurationAsString(long durationInMillis) {
@@ -623,6 +629,10 @@ public abstract class AbstractCELA extends AbstractComponent implements ClassExp
 	public long getMaxExecutionTimeInSeconds() {
 		return maxExecutionTimeInSeconds;
 	}
+	
+	public long getMaxExecutionTimeInMilliSeconds() {
+		return maxExecutionTimeInMilliSeconds;
+	}
 
 	/**
 	 * Set the max. execution time in seconds of the algorithm.  It's expected that the
@@ -632,6 +642,10 @@ public abstract class AbstractCELA extends AbstractComponent implements ClassExp
 	 */
 	public void setMaxExecutionTimeInSeconds(long maxExecutionTimeInSeconds) {
 		this.maxExecutionTimeInSeconds = maxExecutionTimeInSeconds;
+	}
+	
+	public void setMaxExecutionTimeInMilliSeconds(long maxExecutionTimeInMilliSeconds) {
+		this.maxExecutionTimeInMilliSeconds = maxExecutionTimeInMilliSeconds;
 	}
 
 	/**

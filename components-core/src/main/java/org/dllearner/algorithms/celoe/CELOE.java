@@ -21,6 +21,8 @@ package org.dllearner.algorithms.celoe;
 import com.google.common.collect.Sets;
 import com.jamonapi.Monitor;
 import com.jamonapi.MonitorFactory;
+
+import org.dllearner.algorithms.ocel.ExampleBasedNode;
 import org.dllearner.core.*;
 import org.dllearner.core.config.ConfigOption;
 import org.dllearner.core.owl.ClassHierarchy;
@@ -330,6 +332,7 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		logger.info("start class:" + startClass);
 		addNode(startClass, null);
 		
+		int loop = 0;
 		while (!terminationCriteriaSatisfied()) {
 			showIfBetterSolutionsFound();
 
@@ -343,6 +346,7 @@ public class CELOE extends AbstractCELA implements Cloneable{
 			while(!refinements.isEmpty() && !terminationCriteriaSatisfied()) {
 				// pick element from set
 				OWLClassExpression refinement = refinements.pollFirst();
+//				logger.info(descriptionToString(refinement));
 
 				// get length of class expression
 				int length = OWLClassExpressionUtils.getLength(refinement);
@@ -364,6 +368,20 @@ public class CELOE extends AbstractCELA implements Cloneable{
 			if (writeSearchTree) {
 				writeSearchTree(refinements);
 			}
+			
+			loop++;
+			
+//			logger.info(descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
+			
+			if(bestEvaluatedDescriptions.getBestAccuracy() == 1.0)
+			{
+				this.stop = true;
+				
+				logger.info("class expression found: " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
+				System.out.println("Totally " + loop + " iterations required!");
+				System.out.println("--------------------------\n\n");	
+			}
+				
 		}
 		
 		if(singleSuggestionMode) {
@@ -623,12 +641,15 @@ public class CELOE extends AbstractCELA implements Cloneable{
 	// checks whether the class expression is allowed
 	private boolean isDescriptionAllowed(OWLClassExpression description, OENode parentNode) {
 		if(isClassLearningProblem) {
+//			System.out.println("00000000000");
 			if(isEquivalenceProblem) {
 				// the class to learn must not appear on the outermost property level
 				if(occursOnFirstLevel(description, classToDescribe)) {
+//					System.out.println("11111111");
 					return false;
 				}
 				if(occursOnSecondLevel(description, classToDescribe)) {
+//					System.out.println("2222222222");
 					return false;
 				}
 			} else {
@@ -639,18 +660,21 @@ public class CELOE extends AbstractCELA implements Cloneable{
 				while(!toTest.isEmpty()) {
 					OWLClassExpression d = toTest.pollFirst();
 					if(occursOnFirstLevel(description, d)) {
+//						System.out.println("33333333");
 						return false;
 					}
 					toTest.addAll(reasoner.getClassHierarchy().getSuperClasses(d));
 				}
 			}
 		} else if (learningProblem instanceof ClassAsInstanceLearningProblem) {
+//			System.out.println("4444444");
 			return true;
 		}
 		
 		// perform forall sanity tests
 		if (parentNode != null &&
 				(ConceptTransformation.getForallOccurences(description) > ConceptTransformation.getForallOccurences(parentNode.getDescription()))) {
+//			System.out.println("555555555");
 			// we have an additional \forall construct, so we now fetch the contexts
 			// in which it occurs
 			SortedSet<PropertyContext> contexts = ConceptTransformation.getForallContexts(description);
@@ -665,12 +689,15 @@ public class CELOE extends AbstractCELA implements Cloneable{
 				// transform [r,s] to \exists r.\exists s.\top
 				OWLClassExpression existentialContext = context.toExistentialContext();
 				boolean fillerFound = false;
+//				System.out.println("6666666666");
 				if(reasoner instanceof SPARQLReasoner) {
 					SortedSet<OWLIndividual> individuals = reasoner.getIndividuals(existentialContext);
 					fillerFound = !Sets.intersection(individuals, examples).isEmpty();
 				} else {
+//					System.out.println("77777777");
 					for(OWLIndividual instance : examples) {
 						if(reasoner.hasType(existentialContext, instance)) {
+//							System.out.println("88888888");
 							fillerFound = true;
 							break;
 						}
@@ -680,6 +707,7 @@ public class CELOE extends AbstractCELA implements Cloneable{
 				// if we do not find a filler, this means that putting \forall at
 				// that position is not meaningful
 				if(!fillerFound) {
+//					System.out.println("999999999");
 					return false;
 				}
 			}
@@ -691,6 +719,7 @@ public class CELOE extends AbstractCELA implements Cloneable{
 //		Set<OWLClassExpression> siblingClasses = reasoner.getClassHierarchy().getSiblingClasses(classToDescribe);
 //		for now, we just disable negation
 		
+//		System.out.println("AAAAAAAAAAa");
 		return true;
 	}
 	
@@ -748,7 +777,8 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		(maxClassExpressionTestsAfterImprovement != 0 && (expressionTests - expressionTestCountLastImprovement >= maxClassExpressionTestsAfterImprovement)) ||
 		(maxClassExpressionTests != 0 && (expressionTests >= maxClassExpressionTests)) ||
 		(maxExecutionTimeInSecondsAfterImprovement != 0 && ((System.nanoTime() - nanoStartTime) >= (maxExecutionTimeInSecondsAfterImprovement* 1000000000L))) ||
-		(maxExecutionTimeInSeconds != 0 && ((System.nanoTime() - nanoStartTime) >= (maxExecutionTimeInSeconds* 1000000000L))) ||
+//		(maxExecutionTimeInSeconds != 0 && ((System.nanoTime() - nanoStartTime) >= (maxExecutionTimeInSeconds* 1000000000L))) ||
+		(maxExecutionTimeInSeconds != 0 && ((System.nanoTime() - nanoStartTime) >= (maxExecutionTimeInSeconds* 1000000L))) ||
 		(terminateOnNoiseReached && (100*getCurrentlyBestAccuracy()>=100-noisePercentage)) ||
 		(stopOnFirstDefinition && (getCurrentlyBestAccuracy() >= 1));
 	}
