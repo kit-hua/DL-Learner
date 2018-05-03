@@ -425,6 +425,10 @@ public class OCEL extends AbstractCELA {
 			startNode.setCoveredExamples(coveredPositives, coveredNegatives);
 		}
 
+		/**
+		 * @Hua: to play with horizontal expansion, especially for the top concept
+		 */
+//		startNode.setHorizontalExpansion(2);
 		searchTree.addNode(null, startNode);
 		searchTreeStable.addNode(null, startNode);
 
@@ -445,10 +449,12 @@ public class OCEL extends AbstractCELA {
 		long reductionInterval = 300L * 1000000000L;
 		long currentTime;
 
+		int solutionLimit = 10;
 		
 		while (!isTerminationCriteriaReached()) {
 			// print statistics at most once a second
-			currentTime = System.nanoTime();
+			currentTime = System.nanoTime();			
+			
 			if (currentTime - lastPrintTime > 3000000000L) {
 				printStatistics(false);
 				lastPrintTime = currentTime;
@@ -465,12 +471,40 @@ public class OCEL extends AbstractCELA {
 			if (useCandidateReduction && (currentTime - lastReductionTime > reductionInterval)) {
 				reduceCandidates();
 				lastReductionTime = System.nanoTime();
-				// Logger.getRootLogger().setLevel(Level.TRACE);
+//				 Logger.getRootLogger().setLevel(Level.TRACE);
 			}
+			
+			/**
+			 * @Hua: for debug
+			 */
+/*			reduceCandidates();
+			System.out.println("- reduced:");
+			System.out.println("\tsearch tree size: " + searchTree.size());
+			it = searchTree.descendingIterator();
+			ind = 0;
+			while (it.hasNext()) {
+				ExampleBasedNode node = it.next();
+				logger.info("\t" + (ind+1) + ": " + node.getShortDescription());
+				ind++;
+			}
+			System.out.println("\tsearch tree stable size: " + searchTreeStable.size());
+*/
+			
+			/**
+			 * @Hua: for debug
+			 */
+			System.out.println("\ncurrrent candidate size in search tree: " + searchTree.size());	
+			System.out.println("currrent candidate size in search tree stable: " + searchTreeStable.size());
+			Iterator<ExampleBasedNode> it = searchTreeStable.descendingIterator();
+//			int ind = 0;
+//			while (it.hasNext()) {
+//				ExampleBasedNode node = it.next();
+//				logger.info("\t" + (ind+1) + ": " + node.getShortDescription());
+//				ind++;
+//			}
 
 			// we record when a more accurate node is found and log it
-			if (bestNodeStable.getCovPosMinusCovNeg() < searchTreeStable.best()
-					.getCovPosMinusCovNeg()) {
+			if (bestNodeStable.getCovPosMinusCovNeg() < searchTreeStable.best().getCovPosMinusCovNeg()) {
 				String acc = new DecimalFormat(".00%").format((searchTreeStable.best().getAccuracy()));
 				// no handling needed, it will just look ugly in the output
 				long durationInMillis = getCurrentRuntimeInMilliSeconds();
@@ -487,15 +521,30 @@ public class OCEL extends AbstractCELA {
 			}
 
 			// chose best node according to heuristics
+			/**
+			 * @Hua:
+			 *  it is selected from searchTree but not searchTreeStable since by reducing candidates 
+			 *  search Tree will be smaller than searchTreeStable
+			 */
 			bestNode = searchTree.best();
 			// best node is removed temporarily, because extending it can
-			// change its evaluation
+			// change its evaluation	- since the horizontal expansion changes even if no valid successor is found
 			searchTree.updatePrepare(bestNode);
-			extendNodeProper(bestNode, bestNode.getHorizontalExpansion() + 1);
-			searchTree.updateDone(bestNode);
+			
+			/**
+			 * @Hua: debug infos
+			 */
+			System.out.println("- extending: " + bestNode.getShortDescription());
+			extendNodeProper(bestNode, bestNode.getHorizontalExpansion() + 1);			
+			
+			// this will add the expanded nodes to the search tree
+			searchTree.updateDone(bestNode);			
 			previousBestNode = bestNode;
 			
-//			logger.info(descriptionToString(bestNode.getConcept()));
+			System.out.println("- extended: " + bestNode.getShortDescription());
+			System.out.println("\tsearch tree size: " + searchTree.size());
+			System.out.println("\tsearch tree stable size: " + searchTreeStable.size());
+			System.out.println("\tnew best node: " + searchTreeStable.best());
 
 			if (writeSearchTree) {
 				// String treeString = "";
@@ -510,8 +559,23 @@ public class OCEL extends AbstractCELA {
 				treeString += TreeUtils.toTreeString(startNode);
 				treeString += "\n";
 
-				if (replaceSearchTree)
-					Files.createFile(searchTreeFile, treeString);
+				/**
+				 * @Hua: changed code to automatically pop up new file for the tree
+				 * to handle too big trees 
+				 */
+//				if (replaceSearchTree)
+//					Files.createFile(searchTreeFile, treeString);
+//				else
+//					Files.appendToFile(searchTreeFile, treeString);
+				
+				if(searchTreeFile.length() > 1000000) {
+					File f = new File(searchTreeFile.getAbsolutePath() + "_" + loop);
+					if(f.exists()) {
+						Files.clearFile(f);						
+						Files.appendToFile(f, treeString);
+					}else
+						Files.createFile(f, treeString);
+				}					
 				else
 					Files.appendToFile(searchTreeFile, treeString);
 			}
@@ -519,49 +583,51 @@ public class OCEL extends AbstractCELA {
 			// Anzahl Schleifendurchläufe
 			loop++;
 			
+			/**
+			 * @Hua: for debugging
+			 */
 			if(solutions.size() > 0) {
-				int nrOfSolutions = solutions.size();
-				int i = 0;
-				for (ExampleBasedNode n : searchTreeStable.descendingSet()) {
-					if(n.getAccuracy() == 1.0) {
-						logger.info(renderer.render(n.getConcept())
-						+ " (accuracy " + df.format(100 * n.getAccuracy()) + "%, length "
-						+ OWLClassExpressionUtils.getLength(n.getConcept())
-						+ ", depth " + OWLClassExpressionUtils.getDepth(n.getConcept()) + ")");
-						break;
-					}										
-					if (i == nrOfSolutions)
-						break;
-					i++;					
-				}
+//				int nrOfSolutions = solutions.size();
+//				int i = 0;
+//				for (ExampleBasedNode n : searchTreeStable.descendingSet()) {
+//					if(n.getAccuracy() == 1.0) {
+//						logger.info(renderer.render(n.getConcept())
+//						+ " (accuracy " + df.format(100 * n.getAccuracy()) + "%, length "
+//						+ OWLClassExpressionUtils.getLength(n.getConcept())
+//						+ ", depth " + OWLClassExpressionUtils.getDepth(n.getConcept()) + ")");
+//						break;
+//					}										
+//					if (i == nrOfSolutions)
+//						break;
+//					i++;					
+//				}
 				this.stop = true;
 				totalLearningTime.stop();
 				isRunning = false;
 				System.out.println("Totally " + loop + " iterations required!");
 				System.out.println("--------------------------\n\n");
-			}			
+			}		
+			
 		}// end while		
+		
+//		if (solutions.size() > 0) {			
+//			// we do not need to print the best node if we display the top 20 solutions below anyway
+//			logger.info("solutions (at most " + solutionLimit + " are shown):");
+//			int show = 1;
+//			for (ExampleBasedNode c : solutions) {
+//				logger.info(show + ": " + renderer.render(c.getConcept())
+//						+ " (accuracy " + df.format(100 * c.getAccuracy()) + "%, length "
+//						+ OWLClassExpressionUtils.getLength(c.getConcept())
+//						+ ", depth " + OWLClassExpressionUtils.getDepth(c.getConcept()) + ")");
+//				if (show >= solutionLimit) {
+//					break;
+//				}
+//				show++;
+//			}
+//		} else {
+//			logger.info("no appropriate solutions found (try increasing the noisePercentage parameter to what was reported as most accurate expression found above)");
+//		}
 
-		int solutionLimit = 10;
-		if (solutions.size() > 0) {			
-			// we do not need to print the best node if we display the top 20 solutions below anyway
-			logger.info("solutions (at most " + solutionLimit + " are shown):");
-			int show = 1;
-			for (ExampleBasedNode c : solutions) {
-				logger.info(show + ": " + renderer.render(c.getConcept())
-						+ " (accuracy " + df.format(100 * c.getAccuracy()) + "%, length "
-						+ OWLClassExpressionUtils.getLength(c.getConcept())
-						+ ", depth " + OWLClassExpressionUtils.getDepth(c.getConcept()) + ")");
-				if (show >= solutionLimit) {
-					break;
-				}
-				show++;
-			}
-		} else {
-			logger.info("no appropriate solutions found (try increasing the noisePercentage parameter to what was reported as most accurate expression found above)");
-		}
-//
-//		logger.debug("size of candidate set: " + searchTree.size());
 		printBestSolutions(solutionLimit);
 //
 //		printStatistics(true);
@@ -577,9 +643,9 @@ public class OCEL extends AbstractCELA {
 		
 		System.out.println("nr of nodes: " + searchTree.size());
 //
-//		totalLearningTime.stop();
-//		isRunning = false;
-//		System.out.println("Totally " + loop + " iterations required!");
+		totalLearningTime.stop();
+		isRunning = false;
+		System.out.println("Totally " + loop + " iterations required!");
 	}
 
 	// we apply the operator recursively until all proper refinements up
@@ -617,6 +683,7 @@ public class OCEL extends AbstractCELA {
 		// because they are used in recursive calls of this method later on
 		long refinementCalcTimeNsStart = System.nanoTime();
 		Set<OWLClassExpression> refinements = operator.refine(concept, maxLength, null);
+		System.out.println("\t" + refinements.size() + " refinements: " + refinements);
 		refinementCalcTimeNs += System.nanoTime() - refinementCalcTimeNsStart;
 
 		if (refinements.size() > maxNrOfRefinements)
@@ -633,13 +700,14 @@ public class OCEL extends AbstractCELA {
 		Iterator<OWLClassExpression> it = refinements.iterator();
 
 		while (it.hasNext()) {
-
+			
 			OWLClassExpression refinement = it.next();
+//			System.out.println("checking refinement " +  refinement + " of node: "  + node.getShortDescription());
 			if (OWLClassExpressionUtils.getLength(refinement, lengthMetric) > node.getHorizontalExpansion()) {
 				// TRUE means that improperness was detected, but FALSE does not mean that the refinement is proper
 				boolean impropernessDetected = false;
 
-				// 1. short concept construction
+				// 1. short concept construction - to avoid longer but semantically equivalent concepts 
 				if (useShortConceptConstruction) {
 					OWLClassExpression shortConcept = ConceptTransformation.getShortConcept(refinement);
 					// compare with original concept
@@ -649,6 +717,7 @@ public class OCEL extends AbstractCELA {
 					if (n == 0) {
 						propernessTestsAvoidedByShortConceptConstruction++;
 						impropernessDetected = true;
+//						System.out.println("\t improper!");
 					}
 				}
 
@@ -657,6 +726,7 @@ public class OCEL extends AbstractCELA {
 					if (refinement instanceof OWLObjectIntersectionOf) {
 						boolean tooWeakElement = containsTooWeakElement((OWLObjectIntersectionOf) refinement);
 						if (tooWeakElement) {
+//							System.out.println("\t too weak!");
 							propernessTestsAvoidedByTooWeakList++;
 							conceptTestsTooWeakList++;
 							impropernessDetected = true;
@@ -672,10 +742,10 @@ public class OCEL extends AbstractCELA {
 							newNode.setHorizontalExpansion(OWLClassExpressionUtils.getLength(refinement, lengthMetric) - 1);
 							newNode.setTooWeak(true);
 							newNode.setQualityEvaluationMethod(ExampleBasedNode.QualityEvaluationMethod.TOO_WEAK_LIST);
-							node.addChild(newNode);
+							node.addChild(newNode); // why add this node if it is too weak???
 
 							// Refinement muss gelöscht werden, da es proper ist
-							it.remove();
+							it.remove();							
 						}
 					}
 				}
@@ -711,8 +781,15 @@ public class OCEL extends AbstractCELA {
 		// alle proper concepts von refinements löschen
 		refinements.removeAll(properConcepts);
 		improperConceptsRemovalTimeNs += System.nanoTime() - improperConceptsRemovalTimeNsStart;
-
-		for (OWLClassExpression refinement : properConcepts) {
+		
+//		System.out.println("\tsearch tree size: " + searchTree.size());
+//		System.out.println("\tsearch tree stable size: " + searchTreeStable.size());
+		
+		int treeSize = searchTreeStable.size();
+		int all = properConcepts.size();
+		int added = 0;
+		int ind = 0;
+		for (OWLClassExpression refinement : properConcepts) {			
 			long redundancyCheckTimeNsStart = System.nanoTime();
 			boolean nonRedundant = properRefinements.add(refinement);
 			redundancyCheckTimeNs += System.nanoTime() - redundancyCheckTimeNsStart;
@@ -814,6 +891,7 @@ public class OCEL extends AbstractCELA {
 					newNode.setTooWeak(true);
 					// Blacklist für too weak concepts
 					tooWeakList.add(refinement);
+					System.out.println("\t   - too weak");
 				} else {
 					// Lösung gefunden
 					if (quality >= 0 && quality <= allowedMisclassifications) {
@@ -828,7 +906,18 @@ public class OCEL extends AbstractCELA {
 
 				}
 
+				// when adding a node, it will try to add it to its search tree and search tree stable
+				// the search tree stable will accept the new node only if it is not too weak
+				// it is specified with the allowedNode method in SearchTreeNonWeak class
+				// now it is the question, why the search tree does not get bigger when the new node is not weak
 				node.addChild(newNode);
+				ind++;
+				System.out.println("\t" + ind + ". checking refinement " +  newNode);
+				if(!newNode.isRedundant() && !newNode.isTooWeak())
+					added++;
+//				System.out.println("\t  - new node: " + newNode.getShortDescription());
+//				System.out.println("\t    search tree size: " + searchTree.size());
+//				System.out.println("\t    search tree stable size: " + searchTreeStable.size());
 
 				// it is often useful to continue expanding until a longer node is
 				// reached (to replace atomic concepts with more specific ones)
@@ -841,6 +930,7 @@ public class OCEL extends AbstractCELA {
 
 			}
 		}
+		System.out.println("\t" + added + " new nodes added to search tree stable: [" + treeSize + "->" + searchTreeStable.size() + "]");
 
 		// es sind jetzt noch alle Konzepte übrig, die improper refinements sind
 		// auf jedem dieser Konzepte wird die Funktion erneut aufgerufen, da
@@ -1054,11 +1144,18 @@ public class OCEL extends AbstractCELA {
 		return currNode;
 	}
 
+	/**
+	 * divide and conquer:
+	 * It restricts the set of nodes which are candidates for expansion to a set of fixed size in regular time intervals. 
+	 * By default, the candidate set is restricted to the 20 most promising nodes each 300 seconds.
+	 * Those concepts are selected according to their accuracy with a bias towards short concepts 
+	 * with high accuracy on positive examples, since those concepts are more likely to improve in a downward refinement algorithm. 
+	 */
 	private void reduceCandidates() {
 		Iterator<ExampleBasedNode> it = searchTreeStable.descendingIterator();
 		Set<ExampleBasedNode> promisingNodes = new HashSet<>();
 		int i = 0;
-		while (it.hasNext() && promisingNodes.size() < candidatePostReductionSize) {
+		while (it.hasNext() && promisingNodes.size() < 1) {
 			ExampleBasedNode node = it.next();
 			// first criterion: the considered node should have an accuracy gain over its parent
 			// (avoids to use only the most promising node + all its refinements with equal accuracy)
@@ -1075,11 +1172,17 @@ public class OCEL extends AbstractCELA {
 			}
 			i++;
 		}
+		
 		searchTree.retainAll(promisingNodes);
+//		System.out.println("- reduced: " + i + " new nodes:");
+//		System.out.println("search tree size: " + searchTree.size());
+//		System.out.println("search tree stable size: " + searchTreeStable.size());
 		logger.debug("searched " + i + " nodes and picked the following promising descriptions:");
-		if (logger.isDebugEnabled()) {
+//		logger.info("\nsearched " + i + " nodes and picked the following promising descriptions:");
+		if (!logger.isDebugEnabled()) {
 			for (ExampleBasedNode node : promisingNodes)
 				logger.debug(node.getShortDescription());
+//				logger.info(node.getShortDescription());
 		}
 	}
 
@@ -1187,7 +1290,8 @@ public class OCEL extends AbstractCELA {
 			//test
 		else if (maxMilliSeconds < totalTimeNeeded) {
 			this.stop();
-			logger.info("Maximum time (" + maxExecutionTimeInSeconds
+			logger.info("\n-------- Results ----------");
+			logger.info("Maximum time (" + maxExecutionTimeInSeconds/1000
 					+ " seconds) reached, stopping now...");
 			maxExecutionTimeAlreadyReached = true;
 			return true;

@@ -102,7 +102,7 @@ public class AbstractSearchTree <T extends AbstractSearchTreeNode> {
 	/**
 	 * must be called after modifying a node, to support immutable set element pattern
 	 */
-	public final void updateDone(T node) {
+	public final void updateDone(T node) {		
 		if (allowedNode(node)) {
 			nodes.add(node);
 			for (T child : (Collection<T>)node.getChildren()) {

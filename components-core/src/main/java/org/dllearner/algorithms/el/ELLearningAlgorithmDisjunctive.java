@@ -165,6 +165,31 @@ public class ELLearningAlgorithmDisjunctive extends AbstractCELA {
 		initialized = true;
 	}	
 	
+	private int checkPos(OWLClassExpression hypothesis) {
+		Iterator<OWLIndividual> it = ((PosNegLP) getLearningProblem()).getPositiveExamples().iterator();
+		int pc = 0;
+		while(it.hasNext()) {
+			OWLIndividual ind = it.next();
+			if(reasoner.hasType(hypothesis, ind)) {
+				pc++;
+			}
+		}
+		return pc;
+	}
+	
+	private int checkNeg(OWLClassExpression hypothesis) {
+		Iterator<OWLIndividual> it = ((PosNegLP) getLearningProblem()).getNegativeExamples().iterator();
+		int nc = 0;
+		while(it.hasNext()) {
+			OWLIndividual ind = it.next();
+			if(reasoner.hasType(hypothesis, ind)) {
+				nc++;
+			}
+		}
+		return nc;
+	}
+	
+	
 	@Override
 	public void start() {
 //		System.out.println("starting disjunctive ELTL algorithm");
@@ -173,7 +198,22 @@ public class ELLearningAlgorithmDisjunctive extends AbstractCELA {
 		reset();
 		int treeCount = 0;
 		
+		/**
+		 * @Hua: this is the outer loop to combine partial solutions and to manage examples
+		 */
+		int outerLoop = 0;
 		while(!stop && !stoppingCriteriaSatisfied()) {
+			System.out.println(" ====================== outer loop " + (outerLoop+1) + " ======================");
+			System.out.println("current positives: ");
+			Iterator<OWLIndividual> it_print = currentPosExamples.iterator();
+			while(it_print.hasNext()) {
+				System.out.println(it_print.next());
+			}
+			System.out.println("current negatives: ");
+			it_print = currentNegExamples.iterator();
+			while(it_print.hasNext()) {
+				System.out.println(it_print.next());
+			}
 			
 			treeStartTime = System.nanoTime();
 			// create start node
@@ -182,17 +222,32 @@ public class ELLearningAlgorithmDisjunctive extends AbstractCELA {
 //			bestCurrentTree = top;
 			bestCurrentScore = new ScoreSimple(ScoreSimple.MIN.getAccuracy());
 			
+			/**
+			 * @Hua: main loop is the inner loop to find partial solutions
+			 */
 			// main loop
 			int loop = 0;
 			while(!stop && !treeCriteriaSatisfied()) {
+				System.out.println(" -------------- loop " + (loop+1) + " ----------------");
+				
 				// pick the best candidate according to the heuristic
 				SearchTreeNode best = candidates.pollLast();
-//				System.out.println("best: " + best);
+//				System.out.println("current best: " + best);
+				OWLClassExpression bestDesc = best.getDescriptionTree().transformToClassExpression();
+				System.out.print("current best: " + OWLAPIRenderers.toManchesterOWLSyntax(bestDesc));
+								
+				System.out.println(" covers positives: " + checkPos(bestDesc) + "/" + 
+						((PosNegLP) getLearningProblem()).getPositiveExamples().size() + 
+						", covers negatives: " + checkNeg(bestDesc) + "/" + 
+						((PosNegLP) getLearningProblem()).getNegativeExamples().size());
 				
 				// apply operator
 				System.out.print("applying operator ...");
 				List<ELDescriptionTree> refinements = operator.refine(best.getDescriptionTree());
-				System.out.println("done " + refinements.size() + " refinements");
+				System.out.println("done " + refinements.size() + " refinements of " + best);
+				for(ELDescriptionTree refine : refinements)
+					System.out.println(" - " + refine);
+				
 				// add all refinements to search tree, candidates, best descriptions
 				for(ELDescriptionTree refinement : refinements) {
 					addDescriptionTree(refinement, best);
@@ -211,8 +266,10 @@ public class ELLearningAlgorithmDisjunctive extends AbstractCELA {
 //				System.out.println(candidates.last());
 //				System.out.println(candidates.first());
 //				System.out.println("==");
-			}
+			}// inner loop
 			
+			System.out.println("best current score: " + bestCurrentScore.getAccuracy());
+			System.out.println("minimun tree score: " + minimumTreeScore);
 			if(Double.compare(bestCurrentScore.getAccuracy(), minimumTreeScore) > 0) {
 				// we found a tree (partial solution)
 				currentSolution.add(bestCurrentNode.getDescriptionTree());
@@ -267,7 +324,20 @@ public class ELLearningAlgorithmDisjunctive extends AbstractCELA {
 			trees.clear();
 			
 			treeCount++;
-		}
+			
+			it_print = currentPosExamples.iterator();
+			System.out.println("\ncurrent positives: ");
+			while(it_print.hasNext()) {
+				System.out.println(it_print.next());
+			}
+			System.out.println("current negatives: ");
+			it_print = currentNegExamples.iterator();
+			while(it_print.hasNext()) {
+				System.out.println(it_print.next());
+			}
+			outerLoop++;
+			
+		} // end of outer loop
 		
 		// simplify solution (in particular necessary when start class is specified)
 		OWLClassExpression niceDescription = minimizer.minimizeClone(bestEvaluatedDescription.getDescription());
@@ -329,7 +399,12 @@ public class ELLearningAlgorithmDisjunctive extends AbstractCELA {
 
 		// penalty if a minimum coverage is not achieved (avoids too many trees where
 		// each tree has only little impact)
-		if((startPosExamplesSize > 10 && posCoverageCount[0].trueCount<3) || posCoverageCount[0].trueCount < 1) {
+//		if((startPosExamplesSize > 10 && posCoverageCount[0].trueCount<3) || posCoverageCount[0].trueCount < 1) {
+		/**
+		 * @Hua: changed true count for positives to allow A or B
+		 */
+		if(posCoverageCount[0].trueCount * 1.0 / startPosExamplesSize < 0.05) {
+//		if((startPosExamplesSize > 10 && posCoverageCount[0].trueCount<2) || posCoverageCount[0].trueCount < 1) {
 //			score -= 100;
 			// further refining such a tree will not cover more positives
 			// => reject

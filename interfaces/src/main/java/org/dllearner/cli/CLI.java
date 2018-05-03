@@ -189,7 +189,8 @@ public class CLI extends CLIBase2 {
 //		System.out.println("DL-Learner " + Info.build + " [TODO: read pom.version and put it here (make sure that the code for getting the version also works in the release build!)] command line interface");
 		System.out.println("DL-Learner command line interface");
 		
-		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/test.conf");
+//		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/temp/[payload.double.kg]-[payload.double.kg].conf");
+		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/dummy/test.conf");
 		
 		// currently, CLI has exactly one parameter - the conf file
 		if(args.length == 0) {

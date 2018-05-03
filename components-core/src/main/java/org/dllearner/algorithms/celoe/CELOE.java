@@ -184,7 +184,9 @@ public class CELOE extends AbstractCELA implements Cloneable{
 	// option to keep track of best score during algorithm run
 	private boolean keepTrackOfBestScore = false;
 	private SortedMap<Long, Double> runtimeVsBestScore = new TreeMap<>();
-
+	
+	private File searchTreeFileFile;
+	private String treeString = "";
 	
 	public CELOE() {}
 	
@@ -264,13 +266,17 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		
 		minimizer = new OWLClassExpressionMinimizer(dataFactory, reasoner);
 		
-		if (writeSearchTree) {
-			File f = new File(searchTreeFile);
-			if (f.getParentFile() != null) {
-				f.getParentFile().mkdirs();
-			}
-			Files.clearFile(f);
-		}
+//		if (writeSearchTree) {
+//			File f = new File(searchTreeFile);
+//			if (f.getParentFile() != null) {
+//				f.getParentFile().mkdirs();
+//			}
+//			Files.clearFile(f);
+//		}
+		
+		searchTreeFileFile = new File(searchTreeFile);
+		if(writeSearchTree)
+			Files.clearFile(searchTreeFileFile);
 		
 		// start at owl:Thing by default
 		startClass = OWLAPIUtils.classExpressionPropertyExpanderChecked(this.startClass, reasoner, dataFactory, this::computeStartClass, logger);
@@ -335,13 +341,29 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		int loop = 0;
 		while (!terminationCriteriaSatisfied()) {
 			showIfBetterSolutionsFound();
+			System.out.println("\ncurrent max expansion: " + this.getMaximumHorizontalExpansion());
+			System.out.println("current min expansion: " + this.getMinimumHorizontalExpansion());
+//			System.out.println("current max depth: " + this.getMaxDepth());
 
+			/**
+			 * @Hua: the search tree is again sorted: best node at the end
+			 */
 			// chose best node according to heuristics
 			nextNode = getNextNodeToExpand();
+//			System.out.println("next node: " + nextNode.getDescription());
 			int horizExp = nextNode.getHorizontalExpansion();
 			
+			/**
+			 * @Hua: this will refine the node up to the desired expansion n
+			 * so all refinements below n will also be generated and checked again
+			 * the refinement also reorganize the sequence of the search tree: visited node will be shifted back to head
+			 */
 			// apply refinement operator
 			TreeSet<OWLClassExpression> refinements = refineNode(nextNode);
+//			// write the search tree (if configured)
+//			if (writeSearchTree) {
+//				writeSearchTree(refinements, nextNode);
+//			}
 				
 			while(!refinements.isEmpty() && !terminationCriteriaSatisfied()) {
 				// pick element from set
@@ -351,6 +373,9 @@ public class CELOE extends AbstractCELA implements Cloneable{
 				// get length of class expression
 				int length = OWLClassExpressionUtils.getLength(refinement);
 				
+				/**
+				 * @Hua: refinements with lower length are those already checked in previous interations
+				 */
 				// we ignore all refinements with lower length and too high depth
 				// (this also avoids duplicate node children)
 				if(length > horizExp && OWLClassExpressionUtils.getDepth(refinement) <= maxDepth) {
@@ -363,10 +388,34 @@ public class CELOE extends AbstractCELA implements Cloneable{
 			
 			// update the global min and max horizontal expansion values
 			updateMinMaxHorizExp(nextNode);
-			
+					
 			// write the search tree (if configured)
+//			if (writeSearchTree) {
+//				writeSearchTree(refinements, nextNode);
+//			}
+
+//			if (writeSearchTree) {
+//				File f = new File(searchTreeFile);
+//				if (f.getParentFile() != null) {
+//					f.getParentFile().mkdirs();
+//				}
+//				Files.clearFile(f);
+//			}
+			
 			if (writeSearchTree) {
-				writeSearchTree(refinements);
+				treeString = "best node: " + bestEvaluatedDescriptions.getBest() + "\n";
+//				StringBuilder treeString = new StringBuilder("");
+				treeString += "expanding: " + nextNode.getDescription() + " [acc:" + nextNode.getAccuracy() + ", he:" + (nextNode.getHorizontalExpansion()-1) + "]\n";
+				
+				treeString += TreeUtils.toTreeString(searchTree) + "\n";
+
+		
+				if(searchTreeFileFile.length() > 1000000) {
+					searchTreeFileFile = new File(searchTreeFile + "_" + loop);				
+					Files.createFile(searchTreeFileFile, treeString);					
+				}	
+				Files.appendToFile(searchTreeFileFile, treeString);
+					
 			}
 			
 			loop++;
@@ -375,7 +424,7 @@ public class CELOE extends AbstractCELA implements Cloneable{
 			
 			if(bestEvaluatedDescriptions.getBestAccuracy() == 1.0)
 			{
-				this.stop = true;
+//				this.stop = true;
 				
 				logger.info("class expression found: " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
 				System.out.println("Totally " + loop + " iterations required!");
@@ -837,6 +886,30 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		}
 	}
 	
+	/**
+	 * @Hua: write the expanding node to the tree string
+	 * @param refinements
+	 */
+	private void writeSearchTree(TreeSet<OWLClassExpression> refinements, OENode node) {
+		StringBuilder treeString = new StringBuilder("best node: ").append(bestEvaluatedDescriptions.getBest()).append("\n");
+//		StringBuilder treeString = new StringBuilder("");
+		treeString.append("expanding: ").append(node.getDescription()).append(" [acc:").append(node.getAccuracy()).append(", he:").append(node.getHorizontalExpansion()-1).append("]\n");
+		if (refinements.size() > 1) {
+			treeString.append("all expanded nodes:\n");
+			for (OWLClassExpression ref : refinements) {
+				treeString.append("   ").append(ref).append("\n");
+			}
+		}
+		treeString.append(TreeUtils.toTreeString(searchTree)).append("\n");
+
+		// replace or append
+		if (replaceSearchTree) {
+			Files.createFile(new File(searchTreeFile), treeString.toString());
+		} else {
+			Files.appendToFile(new File(searchTreeFile), treeString.toString());
+		}
+	}
+	
 	private void updateMinMaxHorizExp(OENode node) {
 		int newHorizExp = node.getHorizontalExpansion();
 		
@@ -1138,7 +1211,10 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		return new CELOE(this);
 	}
 
-	public static void main(String[] args) throws Exception{
+	/**
+	 * @Hua: commented for convenience 
+	 */
+/*	public static void main(String[] args) throws Exception{
 //		File file = new File("../examples/swore/swore.rdf");
 //		OWLClass classToDescribe = new OWLClassImpl(IRI.create("http://ns.softwiki.de/req/CustomerRequirement"));
 		File file = new File("../examples/father.owl");
@@ -1209,5 +1285,5 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		System.out.println(MapUtils.asTSV(map, "runtime", "best_score"));
 
 	}
-	
+	*/
 }
