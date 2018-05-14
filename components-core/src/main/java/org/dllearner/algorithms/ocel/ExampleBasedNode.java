@@ -136,18 +136,28 @@ public class ExampleBasedNode extends AbstractSearchTreeNode<ExampleBasedNode> i
 	public String getStats() {
 		String ret = " [";
 		
-		if(isTooWeak)
-			ret += "q:tw";
+		if(isTooWeak) {
+			ret += "too weak]";
+			return ret;
+		}
 		else {
-			double accuracy = 100 * getAccuracy();
-			ret += "acc:" + df.format(accuracy) + "% ";
 			
-			// comment this out to display the heuristic score with default parameters
-			//  learningAlgorithm.getHeuristic()
 			int nrOfPositiveExamples = ((PosNegLP) learningAlgorithm.getLearningProblem()).getPositiveExamples().size();
 			int nrOfNegativeExamples = ((PosNegLP) learningAlgorithm.getLearningProblem()).getNegativeExamples().size();
+			
+			/**
+			 * @Hua: the accuracy shown in the log is different to the accuracy useed for building the search tree
+			 * This accuracy method is given by the user, while the one used for search tree is the weighted-predictive-accuracy
+			 */
+//			double accuracy = 100 * getAccuracy();
+			double accuracy = MultiHeuristic.getWeigtedAccuracy(nrOfPositiveExamples, nrOfNegativeExamples, 1, coveredPositives.size(), coveredNegatives.size());
+			 			
+			// comment this out to display the heuristic score with default parameters
+			//  learningAlgorithm.getHeuristic()
+			
 			double heuristicScore = MultiHeuristic.getNodeScore(this, nrOfPositiveExamples, nrOfNegativeExamples, learningAlgorithm.getNegativeWeight(), learningAlgorithm.getStartNodeBonus(), learningAlgorithm.getExpansionPenaltyFactor(), learningAlgorithm.getNegationPenalty());
 			ret += "h:" +df.format(heuristicScore) + " ";
+			ret += "acc:" + df.format(accuracy) + "% ";
 			
 			int wrongPositives = nrOfPositiveExamples - coveredPositives.size();
 			ret += "q:" + wrongPositives + "p-" + coveredNegatives.size() + "n";

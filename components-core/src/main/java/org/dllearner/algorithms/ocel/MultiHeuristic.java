@@ -18,6 +18,8 @@
  */
 package org.dllearner.algorithms.ocel;
 
+import org.dllearner.accuracymethods.AccMethodAMeasure;
+import org.dllearner.accuracymethods.AccMethodFMeasure;
 import org.dllearner.core.Component;
 import org.dllearner.core.ComponentAnn;
 import org.dllearner.core.ComponentInitException;
@@ -75,10 +77,18 @@ public class MultiHeuristic implements ExampleBasedHeuristic, Component {
 	
 	// heuristic parameters
 	
+	/**
+	 * @Hua: CELOE has 0.1
+	 */
 	@ConfigOption(description = "how much accuracy gain is worth an increase of horizontal expansion by one (typical value: 0.01)", defaultValue="0.02")
+//	private double expansionPenaltyFactor = 0.1;
 	private double expansionPenaltyFactor = 0.02;
 	
+	/**
+	 * @Hua: CELOE has 0.3
+	 */
 	@ConfigOption(description = "how accuracy gain should be weighted versus accuracy itself (typical value: 1.00)", defaultValue="0.5")
+//	private double gainBonusFactor = 0.3;
 	private double gainBonusFactor = 0.5;
 	
 	@ConfigOption(description = "penalty factor for the search tree node child count (use higher values for simple learning problems)", defaultValue="0.0001")
@@ -91,15 +101,17 @@ public class MultiHeuristic implements ExampleBasedHeuristic, Component {
 	// (positive weight = 1)
 	@ConfigOption(description = "weighting factor on the number of true negatives (true positives are weigthed with 1)", defaultValue="1.0")
 	private double negativeWeight = 1.0; // was 0.8;
-	
+		
 	@ConfigOption(description = "penalty value to deduce for using a negated class expression (complementOf)", defaultValue="0")
 	private int negationPenalty = 0;
-
+	
 	// examples
 	@NoConfigOption
 	private int nrOfNegativeExamples;
 	@NoConfigOption
 	private int nrOfExamples;
+	@NoConfigOption
+	private int nrOfPositiveExamples;
 	
 	@Deprecated
 	public MultiHeuristic(int nrOfPositiveExamples, int nrOfNegativeExamples) {
@@ -110,12 +122,22 @@ public class MultiHeuristic implements ExampleBasedHeuristic, Component {
 	
 	public MultiHeuristic(int nrOfPositiveExamples, int nrOfNegativeExamples, double negativeWeight, double startNodeBonus, double expansionPenaltyFactor, int negationPenalty) {
 		this.nrOfNegativeExamples = nrOfNegativeExamples;
+		this.nrOfPositiveExamples = nrOfPositiveExamples;
 		nrOfExamples = nrOfPositiveExamples + nrOfNegativeExamples;
 //		this.configurator = configurator;
 		this.negativeWeight = negativeWeight;
 		this.startNodeBonus = startNodeBonus;
 		this.expansionPenaltyFactor = expansionPenaltyFactor;
 	}
+	
+	public MultiHeuristic(int nrOfPositiveExamples, int nrOfNegativeExamples, double negativeWeight, double startNodeBonus) {
+		this.nrOfNegativeExamples = nrOfNegativeExamples;
+		this.nrOfPositiveExamples = nrOfPositiveExamples;
+		nrOfExamples = nrOfPositiveExamples + nrOfNegativeExamples;
+		this.negativeWeight = negativeWeight;
+		this.startNodeBonus = startNodeBonus;
+	}
+
 
     public MultiHeuristic(){
 
@@ -151,19 +173,74 @@ public class MultiHeuristic implements ExampleBasedHeuristic, Component {
 			return node1.getConcept().compareTo(node2.getConcept());
 	}
 
-	public double getNodeScore(ExampleBasedNode node) {
+	/**
+	 * @Hua: this implementation applies the weighted predictive accuracy instead of user specified ones
+	 */
+	public double getNodeScore(ExampleBasedNode node) {		
 		double accuracy = getWeightedAccuracy(node.getCoveredPositives().size(),node.getCoveredNegatives().size());
 		ExampleBasedNode parent = node.getParent();
 		double gain = 0;
 		if(parent != null) {
+			/**
+			 * computation of accuracy is independent of what the user defines in the config file
+			 * it is the weighted predictive accuracy with default weight = 1.0, i.e. negatives have same weights as positives
+			 */
 			double parentAccuracy =  getWeightedAccuracy(parent.getCoveredPositives().size(),parent.getCoveredNegatives().size());
 			gain = accuracy - parentAccuracy;
 		} else {
 			accuracy += startNodeBonus;
 		}
-		int he = node.getHorizontalExpansion() - getHeuristicLengthBonus(node.getConcept());
+		
+		/**
+		 * @Hua: the heuristic length bonus changes the score of Thing dramatically -> Thing will be more likely being expanded
+		 */
+//		int he = node.getHorizontalExpansion() - getHeuristicLengthBonus(node.getConcept());
+		
+//		if(node.getExpression().toString().contains("Schunk"))
+//		{
+//			System.out.println("111");
+//		}
+		int he = node.getHorizontalExpansion();
 		return accuracy + gainBonusFactor * gain - expansionPenaltyFactor * he - nodeChildPenalty * node.getChildren().size();
 	}
+	
+	/**
+	 * @Hua: test the heuristic of FMeausre
+	 */
+//	public double getNodeScore(ExampleBasedNode node) {
+////		System.out.print("score of node " + node.getConcept() + ": ");
+//		AccMethodFMeasure acc_method = new AccMethodFMeasure();
+//		int cp = node.getCoveredPositives().size();
+//		int cn = node.getCoveredNegatives().size();
+//		int up = nrOfPositiveExamples - cp;
+//		int un = nrOfNegativeExamples - cn;
+//		double accuracy = acc_method.getAccOrTooWeak2(cp, up, cn, un, 1);
+////		System.out.print("acc (" + accuracy + "), ");
+//		ExampleBasedNode parent = node.getParent();
+//		double gain = 0;
+//		double acc_gain = 0;
+//		if(parent != null) {
+//			int pcp = parent.getCoveredPositives().size();
+//			int pcn = parent.getCoveredNegatives().size();
+//			int pup = nrOfPositiveExamples - pcp;
+//			int pun = nrOfNegativeExamples - pcn;
+//			double parentAccuracy =  acc_method.getAccOrTooWeak2(pcp, pup, pcn, pun, 1);
+//			gain = accuracy - parentAccuracy;
+//			acc_gain = gainBonusFactor * gain;
+//		} else {
+//			acc_gain = startNodeBonus;
+////			System.out.print("acc_gain (" + startNodeBonus + "), ");
+//		}
+//		int he = node.getHorizontalExpansion();		
+////		System.out.print("acc_gain (" + acc_gain + "), ");
+//		double b = expansionPenaltyFactor * he;
+////		System.out.print("expensionPenalty (" + b + "), ");
+//		double c = nodeChildPenalty * node.getChildren().size();
+////		System.out.print("childerenPenalty (" + c + "), ");
+////		System.out.println("final (" + (accuracy + acc_gain - b - c) + ")");
+//		double score = accuracy + acc_gain - b - c; 
+//		return score;
+//	}
 	
 	private double getWeightedAccuracy(int coveredPositives, int coveredNegatives) {
 		return (coveredPositives + negativeWeight * (nrOfNegativeExamples - coveredNegatives))/(double)nrOfExamples;
@@ -172,6 +249,10 @@ public class MultiHeuristic implements ExampleBasedHeuristic, Component {
 	public static double getNodeScore(ExampleBasedNode node, int nrOfPositiveExamples, int nrOfNegativeExamples, double negativeWeight, double startNodeBonus, double expansionPenaltyFactor, int negationPenalty) {
 		MultiHeuristic multi = new MultiHeuristic(nrOfPositiveExamples, nrOfNegativeExamples, negativeWeight, startNodeBonus, expansionPenaltyFactor, negationPenalty);
 		return multi.getNodeScore(node);
+	}
+	
+	public static double getWeigtedAccuracy(int nrOfPositiveExamples, int nrOfNegativeExamples, double negativeWeight, int coveredPositives, int coveredNegatives) {
+		return (coveredPositives + negativeWeight * (nrOfNegativeExamples - coveredNegatives))/(double)(nrOfPositiveExamples+nrOfNegativeExamples);
 	}
 	
 	// this function can be used to give some constructs a length bonus

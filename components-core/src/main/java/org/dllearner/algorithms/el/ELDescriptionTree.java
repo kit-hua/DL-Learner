@@ -316,11 +316,18 @@ public class ELDescriptionTree implements Cloneable {
 		}
 	}
 	
+	/**
+	 * @Hua: SC1 and SC2 are the simulation conditions defined in the paper. They are used to justify subsumption between EL trees. 
+	 */
 	// SC satisfied if both SC1 and SC2 satisfied
 	public boolean checkSC(ELDescriptionNode node1, ELDescriptionNode node2) {
 		return checkSC1(node1, node2) && checkSC2(node1, node2);
 	}	
 	
+	/**
+	 * @Hua: SC1 is to test that if node1 subsumes node2, then the labels in node1 shall be subset of the labels in node2
+	 * 		 Use OWL reasoner to check the subset condition 
+	 */
 	// tests simulation condition 1 (SC1)
 	public boolean checkSC1(ELDescriptionNode node1, ELDescriptionNode node2) {
 		return isSublabel(node1.getLabel(), node2.getLabel());
@@ -336,7 +343,7 @@ public class ELDescriptionTree implements Cloneable {
 		}
 		return true;
 	}
-	
+		
 	private boolean containsSubclass(OWLClass superClass, NavigableSet<OWLClass> label) {
 		for(OWLClass nc : label) {
 			if(subsumptionHierarchy.isSubclassOf(nc, superClass)) {
@@ -346,7 +353,13 @@ public class ELDescriptionTree implements Cloneable {
 		return false;
 	}
 	
-	// tests simulation condition 2 (SC2)
+	/**
+	 * @Hua: SC2 is to test that if node1 subsumes node2, then:
+	 *  - outgoing edges of node1 shall be subrole of some outgoing edges in node2
+	 *  - target node of node1 shall subsume target node of node2
+	 *  		 Use owl reasoner to check subrole
+	 */
+	// tests simulation condition 2 (SC2)	
 	public boolean checkSC2(ELDescriptionNode node1, ELDescriptionNode node2) {
 		List<ELDescriptionEdge> edges1 = node1.getEdges();
 		List<ELDescriptionEdge> edges2 = node2.getEdges();

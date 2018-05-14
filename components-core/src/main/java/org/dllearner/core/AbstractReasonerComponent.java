@@ -140,7 +140,7 @@ public abstract class AbstractReasonerComponent extends AbstractComponent implem
 	 * The underlying knowledge sources.
 	 */
 	@ConfigOption(description = "the underlying knowledge sources", required = true)
-	protected Set<KnowledgeSource> sources;
+	protected Set<KnowledgeSource> sources;	
 
     public AbstractReasonerComponent(){
 
@@ -1646,4 +1646,6 @@ public abstract class AbstractReasonerComponent extends AbstractComponent implem
 	public void setUseInstanceChecks(boolean useInstanceChecks) {
 		this.useInstanceChecks = useInstanceChecks;
 	}
+	
+	public abstract Collection<OWLAnnotation> getAnnotations(OWLClassExpression cls);
 }

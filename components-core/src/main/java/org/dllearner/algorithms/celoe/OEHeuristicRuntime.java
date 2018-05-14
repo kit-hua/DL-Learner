@@ -18,6 +18,8 @@
  */
 package org.dllearner.algorithms.celoe;
 
+import java.text.DecimalFormat;
+
 import org.dllearner.core.AbstractHeuristic;
 import org.dllearner.core.ComponentAnn;
 import org.dllearner.core.ComponentInitException;
@@ -56,6 +58,9 @@ public class OEHeuristicRuntime extends AbstractHeuristic{
 		initialized = true;
 	}
 
+	/**
+	 * The accuracy method is specified by the user
+	 */
 	@Override
 	public double getNodeScore(OENode node) {
 		// accuracy as baseline
@@ -63,7 +68,11 @@ public class OEHeuristicRuntime extends AbstractHeuristic{
 		// being better than the parent gives a bonus;
 		if(!node.isRoot()) {
 			double parentAccuracy = node.getParent().getAccuracy();
-			score += (parentAccuracy - score) * gainBonusFactor;
+			/**
+			 * @Hua: FATAL ERROR: accuracy gain is (current - parent)
+			 */
+			// score += (parentAccuracy - score) * gainBonusFactor;
+			score += (score - parentAccuracy) * gainBonusFactor; 
 		// the root node also gets a bonus to possibly spawn useful disjunctions
 		} else {
 			score += startNodeBonus;
@@ -74,6 +83,36 @@ public class OEHeuristicRuntime extends AbstractHeuristic{
 		score -= node.getRefinementCount() * nodeRefinementPenalty;
 		return score;
 	}
+	
+//	public double getNodeScore(OENode node) {
+//		DecimalFormat df = new DecimalFormat("0.0000"); 
+//		System.out.print("score of " + node.getDescription() + ":");
+//		// accuracy as baseline
+//		double acc = node.getAccuracy();
+//		double acc_gain = 0;
+//		System.out.print(" acc (" + df.format(acc) + "), ");
+//		// being better than the parent gives a bonus;
+//		if(!node.isRoot()) {
+//			double parentAccuracy = node.getParent().getAccuracy();
+//			acc_gain = (acc - parentAccuracy ) * gainBonusFactor;
+//			System.out.print(" acc_gain (" + df.format(acc_gain) + "), ");
+//		// the root node also gets a bonus to possibly spawn useful disjunctions
+//		} else {
+//			acc_gain = startNodeBonus;
+//			System.out.print(" acc_gain (" + df.format(startNodeBonus) + "), ");
+//		}
+//		// penalty for horizontal expansion
+////		score -= node.getHorizontalExpansion() * expansionPenaltyFactor;
+//		// penalty for having many child nodes (stuck prevention)
+////		score -= node.getRefinementCount() * nodeRefinementPenalty;
+//		double b = expansionPenaltyFactor * node.getHorizontalExpansion();
+//		System.out.print(" expansionPenalty (" + df.format(b) + "), ");
+//		double c = nodeRefinementPenalty * node.getChildren().size();
+//		System.out.print(" childerenPenalty (" + df.format(c) + "), ");
+//		double score = acc + acc_gain - b - c;
+//		System.out.println(" final (" + df.format(score) + "), ");
+//		return score;
+//	}
 
 	public double getExpansionPenaltyFactor() {
 		return expansionPenaltyFactor;

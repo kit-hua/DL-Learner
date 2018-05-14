@@ -21,6 +21,8 @@ package org.dllearner.reasoning;
 import com.clarkparsia.owlapi.explanation.PelletExplanation;
 import com.clarkparsia.owlapiv3.XSD;
 import com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory;
+
+import org.apache.jena.sparql.algebra.Op;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.dllearner.core.AbstractReasonerComponent;
@@ -79,7 +81,7 @@ public class OWLAPIReasoner extends AbstractReasonerComponent {
     private OWLDataFactory df;
 
     // primitives
-    Set<OWLClass> atomicConcepts = new TreeSet<>();
+    Set<OWLClass> atomicConcepts = new TreeSet<>();    
     Set<OWLObjectProperty> atomicRoles = new TreeSet<>();
     SortedSet<OWLDataProperty> datatypeProperties = new TreeSet<>();
     SortedSet<OWLIndividual> individuals = new TreeSet<>();
@@ -153,7 +155,7 @@ public class OWLAPIReasoner extends AbstractReasonerComponent {
             atomicConcepts.addAll(ontology.getClassesInSignature(Imports.INCLUDED));
             atomicRoles.addAll(ontology.getObjectPropertiesInSignature(Imports.INCLUDED));
             datatypeProperties.addAll(ontology.getDataPropertiesInSignature(Imports.INCLUDED));
-            individuals.addAll(ontology.getIndividualsInSignature(Imports.INCLUDED));
+            individuals.addAll(ontology.getIndividualsInSignature(Imports.INCLUDED));             
 
             // if several knowledge sources are included, then we can only
             // guarantee that the base URI is from one of those sources (there
@@ -1235,12 +1237,18 @@ public class OWLAPIReasoner extends AbstractReasonerComponent {
 		if(!(reasoner instanceof ThreadSafeOWLReasoner)) {
 			reasoner = new ThreadSafeOWLReasoner(reasoner);
 		}
-	}
+	}	
 
 	public static void main(String[] args) throws Exception{
 		OWLOntology o = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File("/tmp/test2.rdf"));
 		System.out.println(o.getClassesInSignature());
 		System.out.println(o.getDataPropertiesInSignature());
 		System.out.println(o.getIndividualsInSignature().size());
+	}
+
+	@Override
+	public Collection<OWLAnnotation> getAnnotations(OWLClassExpression cls) {
+		// TODO Auto-generated method stub
+		return EntitySearcher.getAnnotations((OWLEntity) cls, ontology);
 	}
 }

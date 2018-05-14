@@ -33,12 +33,15 @@ public class AbstractSearchTree <T extends AbstractSearchTreeNode> {
 	// root of search tree
 	protected T root;
 	
+	private int depth;
+	
 	/**
 	 * create a new search tree
 	 * @param comparator the comparator to use for the nodes
 	 */
 	public AbstractSearchTree(Comparator<T> comparator) {
 		sortOrderComp = comparator;
+		depth = 0;
 	}
 
 	/**
@@ -53,15 +56,29 @@ public class AbstractSearchTree <T extends AbstractSearchTreeNode> {
 		} else {
 			parentNode.addChild(node);
 		}
+		if(this.depth < node.getDepth())
+			this.depth = node.getDepth();
+	}	
+	
+	public int getDepth() {
+		return this.depth;
 	}
+
 	
 	/**
 	 * internally used by tree<->node contract to notify a tree about an added node
 	 * @param node the node
 	 */
 	public final void notifyNode(T node) {
+		/**
+		 * @Hua: to check if nodes contains the parent, it goes to use the comparator in AbstractHeuristic
+		 * which is defined as OEHeuristicRuntime
+		 */
 		if (node.getParent() == null || nodes.contains(node.getParent())) {
 			if (allowedNode(node))
+				/**
+				 * @Hua: add the node to the tree
+				 */
 				nodes.add(node);
 		}
 	}

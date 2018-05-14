@@ -530,6 +530,9 @@ public class PCELOE extends AbstractCELA {
 		// otherwise you may see rarely occurring but critical false ordering in the nodes set)
 		searchTree.updatePrepare(node);
 		int horizExp = node.getHorizontalExpansion();
+		/**
+		 * @Hua: why +1
+		 */
 		TreeSet<OWLClassExpression> refinements = (TreeSet<OWLClassExpression>) operator.refine(node.getDescription(), horizExp+1);
 //		System.out.println("refinements: " + refinements);
 		node.incHorizontalExpansion();

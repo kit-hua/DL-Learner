@@ -49,6 +49,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileSystemView;
+
 //import org.dllearner.algorithms.qtl.QTL2;
 
 /**
@@ -189,29 +192,34 @@ public class CLI extends CLIBase2 {
 //		System.out.println("DL-Learner " + Info.build + " [TODO: read pom.version and put it here (make sure that the code for getting the version also works in the release build!)] command line interface");
 		System.out.println("DL-Learner command line interface");
 		
-//		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/temp/[payload.double.kg]-[payload.double.kg].conf");
-		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/dummy/test.conf");
+		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/ilp2018/5_nestedIE/celoe_f.conf");
 		
 		// currently, CLI has exactly one parameter - the conf file
-		if(args.length == 0) {
-			System.out.println("No argument found for the conf file, using default: " + conf);
-			System.exit(0);
-		}else {
-			// read file and print and print a message if it does not exist
-			conf = new File(args[args.length - 1]);
-			if(!conf.exists()) {
-				System.out.println("File \"" + conf + "\" does not exist.");
-				System.exit(0);
-			}
-		}
+//		if(args.length == 0) {
+//			System.out.println("No argument found for the conf file, using default: " + conf);
+//			System.exit(0);
+//		}else {
+//			// read file and print and print a message if it does not exist
+//			conf = new File(args[args.length - 1]);
+//			if(!conf.exists()) {
+//				System.out.println("File \"" + conf + "\" does not exist.");
+//				System.exit(0);
+//			}
+//		}
 		
+//		JFileChooser jfc = new JFileChooser("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/ilp2018/");
+//		int returnValue = jfc.showOpenDialog(null);
+//		if (returnValue == JFileChooser.APPROVE_OPTION) {
+//			conf = jfc.getSelectedFile();
+//			System.out.println("selected config file: " + conf);
+//		}		
 		
 		Resource confFile = new FileSystemResource(conf);
 		
 		List<Resource> springConfigResources = new ArrayList<>();
 
 		int i = 0;
-		while(i<1) {
+		while(i<5) {
 			 try {
 		            //DL-Learner Configuration Object
 		            IConfiguration configuration = new ConfParserConfiguration(confFile);

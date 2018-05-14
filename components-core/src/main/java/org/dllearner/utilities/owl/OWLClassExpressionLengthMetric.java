@@ -61,10 +61,13 @@ public class OWLClassExpressionLengthMetric extends AbstractComponent {
 
 	public static OWLClassExpressionLengthMetric getOCELMetric() {
 		OWLClassExpressionLengthMetric metric = new OWLClassExpressionLengthMetric();
-		metric.dataHasValueLength = 1;
-		metric.objectHasValueLength = 1;
-		metric.dataSomeValuesLength = 0;
-		metric.objectSomeValuesLength = 0;
+		/**
+		 * @Hua: changed to default setting as the thesis
+		 */
+//		metric.dataHasValueLength = 1;
+//		metric.objectHasValueLength = 1;
+//		metric.dataSomeValuesLength = 0;
+//		metric.objectSomeValuesLength = 0;
 		return metric;
 	}
 

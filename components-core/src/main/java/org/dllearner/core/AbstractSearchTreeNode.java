@@ -33,6 +33,7 @@ public abstract class AbstractSearchTreeNode <T extends AbstractSearchTreeNode> 
 	protected Set< AbstractSearchTree<T> > trees = new HashSet<>();
 	protected T parent;
 	protected List<T> children = new LinkedList<>();
+	private int depth = 0; //depth of the node in a tree
 
 	@Override
 	public abstract OWLClassExpression getExpression();
@@ -44,7 +45,8 @@ public abstract class AbstractSearchTreeNode <T extends AbstractSearchTreeNode> 
 	public void addChild(T node) {
 		node.setParent(this);
 		children.add(node);
-		node.notifyTrees(this.trees);
+		node.notifyTrees(this.trees);	
+		node.setDepth(this.depth+1);
 	}
 	
 	/**
@@ -58,6 +60,17 @@ public abstract class AbstractSearchTreeNode <T extends AbstractSearchTreeNode> 
 			throw new Error("Parent already set on node");
 		}
 		this.parent = node;
+		this.depth = node.getDepth()+1;
+	}
+	
+	
+	public void setDepth(int d) {
+		this.depth = d;
+	}
+	
+	
+	public int getDepth() {
+		return this.depth;
 	}
 
 	/**

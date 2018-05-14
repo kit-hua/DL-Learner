@@ -1793,4 +1793,10 @@ public class ClosedWorldReasoner extends AbstractReasonerComponent {
 
     }
 
+	@Override
+	public Collection<OWLAnnotation> getAnnotations(OWLClassExpression cls) {
+		// TODO Auto-generated method stub
+		return baseReasoner.getAnnotations(cls);
+	}
+
 }
