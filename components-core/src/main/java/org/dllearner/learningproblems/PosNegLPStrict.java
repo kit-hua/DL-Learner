@@ -197,4 +197,10 @@ public class PosNegLPStrict extends PosNegLP {
 	public EvaluatedDescription evaluate(OWLClassExpression description) {
 		throw new NotImplementedException("Not implemented yet!");
 	}
+
+	@Override
+	public long getAccTime() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }

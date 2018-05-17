@@ -157,4 +157,6 @@ public abstract class AbstractLearningProblem<T extends Score, V extends OWLObje
     public void setReasoner(AbstractReasonerComponent reasoner) {
         this.reasoner = reasoner;
     }
+    
+    public abstract long getAccTime();
 }

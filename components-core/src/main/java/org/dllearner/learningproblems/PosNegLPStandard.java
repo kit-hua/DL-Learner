@@ -123,4 +123,10 @@ public class PosNegLPStandard extends PosNegLP implements Cloneable{
     	super.clone();
     	return new PosNegLPStandard(this);
     }
+
+	@Override
+	public long getAccTime() {
+		// TODO Auto-generated method stub
+		return reasoningUtil.accTime;
+	}
 }

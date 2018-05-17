@@ -275,4 +275,10 @@ public class ClassAsInstanceLearningProblem extends AbstractClassExpressionLearn
 		
 	}
 
+	@Override
+	public long getAccTime() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

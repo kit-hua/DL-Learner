@@ -1052,7 +1052,7 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 	 * Similarly, topARefinements will always be empty
 	 */
 	private void computeTopRefinements(int maxLength, OWLClassExpression domain) {
-		System.out.println("computing refinements for top with length " + maxLength + " and domain " + domain);
+//		System.out.println("computing refinements for top with length " + maxLength + " and domain " + domain);
 		long topComputationTimeStartNs = System.nanoTime();
 //		System.out.println("computing top refinements for " + domain + " up to length " + maxLength);
 

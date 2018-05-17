@@ -22,6 +22,10 @@ import com.google.common.collect.Sets;
 import com.jamonapi.Monitor;
 import com.jamonapi.MonitorFactory;
 
+import org.apache.jena.base.Sys;
+import org.dllearner.accuracymethods.AccMethodFMeasure;
+import org.dllearner.accuracymethods.AccMethodPredAcc;
+import org.dllearner.accuracymethods.AccMethodTwoValued;
 import org.dllearner.algorithms.ocel.ExampleBasedNode;
 import org.dllearner.core.*;
 import org.dllearner.core.config.ConfigOption;
@@ -54,7 +58,10 @@ import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -195,9 +202,15 @@ public class CELOE extends AbstractCELA implements Cloneable{
 	private long logTime = 0;
 	private long refineTime = 0;
 	private long treeTime = 0;
+//	private long treeTime1 = 0;
+//	private long treeTime2 = 0;
+//	private long treeTime3 = 0;
 	private String projectPath;
 	private String projectName;
 	private String opName;
+	private String accName;
+	private boolean doPrint;
+	ExcelTable statistics;
 	
 	public CELOE() {}
 	
@@ -286,20 +299,41 @@ public class CELOE extends AbstractCELA implements Cloneable{
 //			Files.clearFile(f);
 //		}
 
+		/**
+		 * @Hua: parse the input for benchmark
+		 */
+		
+		// accuracy
+		if(((PosNegLP) learningProblem).getAccuracyMethod() instanceof AccMethodFMeasure)
+			accName = "fm";
+		else if(((PosNegLP) learningProblem).getAccuracyMethod() instanceof AccMethodPredAcc)
+			accName = "pred";
+		else
+			accName = "accX";
+		
+		// operator
+		if(operator instanceof AMLOperator)
+			opName = "aml";
+		else if(operator instanceof RhoDRDown)
+			opName = "rho";
+		else
+			opName = "opX";
+		
+		// parse test case
 		int lastSlash = searchTreeFile.lastIndexOf("/");
-		projectName = searchTreeFile.substring(lastSlash+1, searchTreeFile.length());
+		projectName = searchTreeFile.substring(lastSlash+1, searchTreeFile.length());		
+		projectName += "_" + "celoe";
+		
 		String logPath = searchTreeFile.substring(0, lastSlash);
 		lastSlash = logPath.lastIndexOf("/");
 		projectPath = logPath.substring(0, lastSlash);
 		lastSlash = projectPath.lastIndexOf("/");
-		projectName = projectPath.substring(lastSlash+1, projectPath.length()) + "_" + projectName;
+//		projectName = projectPath.substring(lastSlash+1, projectPath.length()) + "_" + projectName;
+		projectName += "_" + accName; 
 		
-		if(operator.getClass().toString().contains("AML"))
-			opName = "aml";
-		else
-			opName = "rho";
 		
-		searchTreeFileFile = new File(searchTreeFile);
+		// search file 
+		searchTreeFileFile = new File(searchTreeFile + "_" + accName + "_" + opName);
 		if(writeSearchTree)
 			Files.clearFile(searchTreeFileFile);
 		
@@ -353,19 +387,27 @@ public class CELOE extends AbstractCELA implements Cloneable{
 	
 	@Override
 	public void start() {
+		
+		reasoner.resetTimer();
+		doPrint = false;
 		stop = false;
 		isRunning = true;
 		reset();
 		nanoStartTime = System.nanoTime();
 		
+		refineTime = 0;
+		treeTime = 0;
+//		treeTime1 = 0;
+//		treeTime2 = 0;
+//		treeTime3 = 0;
+		logTime = 0;
+		
 		currentHighestAccuracy = 0.0;
 		OENode nextNode;
 
-		logger.info("start class:" + startClass);		
+//		logger.info("start class:" + startClass);		
 		addNode(startClass, null);
-		OWLClassExpression bd = null;
-		
-		writeSearchTree = false;
+		OWLClassExpression bd = null;		
 				
 		while (!terminationCriteriaSatisfied()) {	
 			
@@ -375,61 +417,54 @@ public class CELOE extends AbstractCELA implements Cloneable{
 			 * They are just for better reading. 
 			 * For example, hasB.Top is stored in tree, but represented as hasB.B in the list
 			 */
-			//System.out.println("bests: " + bestEvaluatedDescriptions);
+			
+			if(bestEvaluatedDescriptions.getBestAccuracy() == 1.0)
+			{
+				this.stop = true;
+				if(bd == null || !bd.equals(bestEvaluatedDescriptions.getBest().getDescription())) {
+					bd = bestEvaluatedDescriptions.getBest().getDescription();
+					logger.info("   - class expression found: " + descriptionToString(bd));
+				}				
+				
+//				System.out.println("tree time: " + Helper.prettyPrintNanoSeconds(treeTime));
+//				System.out.println("tree time 1: " + Helper.prettyPrintNanoSeconds(treeTime1) + ", " + 100 * treeTime1/(double)treeTime);
+//				System.out.println("tree time 2: " + Helper.prettyPrintNanoSeconds(treeTime2) + ", " + 100 * treeTime2/(double)treeTime);
+//				System.out.println("tree time 3: " + Helper.prettyPrintNanoSeconds(treeTime3) + ", " + 100 * treeTime3/(double)treeTime);
+//				System.out.println("reasoning time: " + Helper.prettyPrintNanoSeconds(reasoner.getOverallReasoningTimeNs()));
+			}
 			
 			long t1 = System.nanoTime();
-			String durationStr = ifBetterSolutionsFound();
-			if(durationStr != null)
-			{
-				System.out.println("\nloop " + loop + ": ");
-				logger.info(" - more accurate (" + dfPercent.format(currentHighestAccuracy) + ") class expression found after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
-				if(bestEvaluatedDescriptions.getBestAccuracy() == 1.0)
+			if(doPrint) {
+				String durationStr = ifBetterSolutionsFound();
+				if(durationStr != null)
 				{
-					this.stop = true;
-					if(bd == null || !bd.equals(bestEvaluatedDescriptions.getBest().getDescription())) {
-						bd = bestEvaluatedDescriptions.getBest().getDescription();
-						logger.info(" - class expression found: " + descriptionToString(bd));
-//						System.out.println(" - Totally " + loop + " iterations required!");
-//						System.out.println("\n--------------------------");						
-					}								
-				}
-			}else
-			{
-				if(loop%10000 == 0) {
-					System.out.println("\nloop " + loop + ":");
-					System.out.println("depth: " + searchTree.getDepth());
-					System.out.println("nr of nodes: " + searchTree.size());					
-					System.out.println("expanding: " + getNextNodeToExpand());
+					System.out.println("\nloop " + loop + ": ");
+					logger.info(" - more accurate (" + dfPercent.format(currentHighestAccuracy) + ") class expression found after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));					
+				}else
+				{
+					if(loop%10000 == 0) {
+						System.out.println("\nloop " + loop + ":");
+						System.out.println("depth: " + searchTree.getDepth());
+						System.out.println("nr of nodes: " + searchTree.size());					
+						System.out.println("expanding: " + getNextNodeToExpand());
+						System.out.println(getStates(false));
+					}
 				}
 			}
 			logTime += System.nanoTime() - t1;
-//			showIfBetterSolutionsFound();
-			
-			
-//			System.out.println("current max depth: " + this.getMaxDepth());
 
 			/**
 			 * @Hua: the search tree is again sorted: best node at the end
 			 * 		 this picks the "best" node to expand, and will continue refine it if it not becomes worse
 			 */
 			// chose best node according to heuristics
-//			System.out.println("search tree: ");			
-//			Iterator<OENode> it = searchTree.descendingIterator();
-//			while(it.hasNext())
-//				System.out.println(" - " + it.next());
 			nextNode = getNextNodeToExpand();
 			
-//			OENode cpNode = new OENode(nextNode.getDescription(), nextNode.accuracy);
-//			cpNode.horizontalExpansion = nextNode.horizontalExpansion;
-//			nextNode.horizontalExpansion = 7;
-//			System.out.println("next node: " + nextNode.getDescription());
 			int horizExp = nextNode.getHorizontalExpansion();
 			
 			long t2 = System.nanoTime();
 			if (writeSearchTree) {
 				treeString = "loop " + loop + "\n";
-//				treeString += "best node: " + bestEvaluatedDescriptions.getBest() + "\n";
-//				StringBuilder treeString = new StringBuilder("");
 				treeString += "expanding: " + nextNode.getDescription() + " [h:" + this.heuristic.getNodeScore(nextNode) + ", acc:" + nextNode.getAccuracy() + ", he:" + (nextNode.getHorizontalExpansion()) + "]\n";
 			}
 			logTime += System.nanoTime() - t2;
@@ -441,24 +476,11 @@ public class CELOE extends AbstractCELA implements Cloneable{
 			 */
 			// apply refinement operator
 			long refineStart = System.nanoTime();
+			long r1 = reasoner.getOverallReasoningTimeNs();
 			TreeSet<OWLClassExpression> refinements = refineNode(nextNode);
-			refineTime += System.nanoTime() - refineStart;
-//			// write the search tree (if configured)
-//			if (writeSearchTree) {
-//				writeSearchTree(refinements, nextNode);
-//			}
-//			if(nextNode.getParent() == null) {
-//				System.out.println("\ncurrent max expansion: " + this.getMaximumHorizontalExpansion());
-//				System.out.println("current min expansion: " + this.getMinimumHorizontalExpansion());
-//				System.out.println("best node: " + bestEvaluatedDescriptions.getBest());
-//				System.out.println("bests: " + bestEvaluatedDescriptions);
-//				System.out.println(refinements.size() + " possible refinements of: " + cpNode);
-//				for(OWLClassExpression refine : refinements) {
-//					System.out.println(" - " + refine.toString());
-//				}	
-//			}
-			
-			long treeStart = System.nanoTime();
+			long r2 = reasoner.getOverallReasoningTimeNs();			
+			refineTime += System.nanoTime() - refineStart - (r2-r1);
+						
 			while(!refinements.isEmpty() && !terminationCriteriaSatisfied()) {
 				
 				// pick element from set
@@ -477,15 +499,15 @@ public class CELOE extends AbstractCELA implements Cloneable{
 				 * 		 a node is only added if it is not too weak
 				 */
 				// we ignore all refinements with lower length and too high depth
-				// (this also avoids duplicate node children)
+				// (this also avoids duplicate node children)				
 				if(length >= horizExp && d <= maxDepth) {
 					// add node to search tree
 					addNode(refinement, nextNode);
 				}else {
 //					System.out.println(" : ignored");
-				}				
+				}							
 			}
-			treeTime += System.nanoTime() - treeStart;
+			
 			
 			long t3 = System.nanoTime();
 			if (writeSearchTree) {
@@ -496,57 +518,36 @@ public class CELOE extends AbstractCELA implements Cloneable{
 				}	
 				Files.appendToFile(searchTreeFileFile, treeString);				
 			}
-			logTime += System.nanoTime() - t3;
-			
-//			showIfBetterSolutionsFound();
+			logTime += System.nanoTime() - t3;		
 			
 			// update the global min and max horizontal expansion values
-			updateMinMaxHorizExp(nextNode);
-					
-			// write the search tree (if configured)
-//			if (writeSearchTree) {
-//				writeSearchTree(refinements, nextNode);
-//			}
-
-//			if (writeSearchTree) {
-//				File f = new File(searchTreeFile);
-//				if (f.getParentFile() != null) {
-//					f.getParentFile().mkdirs();
-//				}
-//				Files.clearFile(f);
-//			}
+			updateMinMaxHorizExp(nextNode);						
 			
-			
-			loop++;
-			
-//			logger.info(descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
-			
-//			if(bestEvaluatedDescriptions.getBestAccuracy() == 1.0)
-//			{
-////				this.stop = true;
-//				if(bd == null || !bd.equals(bestEvaluatedDescriptions.getBest().getDescription())) {
-//					bd = bestEvaluatedDescriptions.getBest().getDescription();
-//					logger.info("class expression found: " + descriptionToString(bd));
-//					System.out.println("Totally " + loop + " iterations required!");
-//					System.out.println("\n--------------------------");						
-//				}								
-//			}
-				
+			loop++;						
 		}
 		
 		if(singleSuggestionMode) {
 			bestEvaluatedDescriptions.add(bestDescription, bestAccuracy, learningProblem);
 		}
 		
-		printStats(true);
+		String stateFile = searchTreeFile + "_" + accName + "_" + opName + ".log";
+		String states = getStates(true);
+		try {
+			saveStates(stateFile, states);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
+		saveStatistics(projectPath+"/statistics.xlsx", opName);
 		
-		saveStatistics("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/statistics.xlsx", opName);
+		if(doPrint)
+			System.out.println(states);
 		
 		// print some stats
-		printAlgorithmRunStats();
+//		printAlgorithmRunStats();
 		
 		// print solution(s)
-		logger.info("\nsolutions:\n" + getSolutionString());
+//		logger.info("\nsolutions:\n" + getSolutionString());
 		
 		isRunning = false;
 	}
@@ -691,24 +692,29 @@ public class CELOE extends AbstractCELA implements Cloneable{
 	 * @return TRUE if node was added and FALSE otherwise
 	 */
 	private boolean addNode(OWLClassExpression description, OENode parentNode) {
+		
+//		long treeStart1 = System.nanoTime();
 		String sparql_debug_out = "";
 		if (logger.isTraceEnabled()) sparql_debug_out = "DESC: " + description;
-		MonitorFactory.getTimeMonitor("addNode").start();
+		MonitorFactory.getTimeMonitor("addNode").start();		
 		
 		// redundancy check (return if redundant)
 		boolean nonRedundant = descriptions.add(description);
 		if(!nonRedundant) {
 			logger.trace(sparql_debug, sparql_debug_out + "REDUNDANT");
+//			treeTime1 += System.nanoTime() - treeStart1;
 			return false;
 		}
 		
 		// check whether the class expression is allowed
 		if(!isDescriptionAllowed(description, parentNode)) {
 			logger.trace(sparql_debug, sparql_debug_out + "NOT ALLOWED");
+//			treeTime2 += System.nanoTime() - treeStart1;
 			return false;
-		}
+		}		
 		
 		// quality of class expression (return if too weak)
+		
 		Monitor mon = MonitorFactory.start("lp");
 		logger.trace(sparql_debug, sparql_debug_out);
 		
@@ -717,20 +723,26 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		 * getAccuracyOrTooWeak will call getAccuracyOrTooWeak2 internally, which is the user specified accuracy e.g. AccMethodFMeasure.getAccuracyOrTooWeak
 		 * So this will be the same as the real accuracy
 		 */
+//		long treeStart3 = System.nanoTime();
 		double accuracy = learningProblem.getAccuracyOrTooWeak(description, noise);
+//		treeTime3 += System.nanoTime() - treeStart3;
 		logger.trace(sparql_debug, "`acc:"+accuracy);
 		mon.stop();
+		
+		
+//		treeTime3 = learningProblem.getAccTime();
 		
 		// issue a warning if accuracy is not between 0 and 1 or -1 (too weak)
 		if(accuracy > 1.0 || (accuracy < 0.0 && accuracy != -1)) {
 			throw new RuntimeException("Invalid accuracy value " + accuracy + " for class expression " + description +
 					". This could be caused by a bug in the heuristic measure and should be reported to the DL-Learner bug tracker.");
-		}
+		}				
 		
 		/**
 		 * @Hua: each refinement which makes further will be checked
 		 */
 		expressionTests++;
+		
 		
 		// return FALSE if 'too weak'
 		if(accuracy == -1) {
@@ -738,15 +750,16 @@ public class CELOE extends AbstractCELA implements Cloneable{
 			return false;
 		}else {
 //			System.out.println(" : new candidate");
-		}
-			
+		}									
 		
+		long treeStart = System.nanoTime();		
 		OENode node = new OENode(description, accuracy);
 		searchTree.addNode(parentNode, node);
-		
+		treeTime += System.nanoTime() - treeStart;
+						
 		// in some cases (e.g. mutation) fully evaluating even a single class expression is too expensive
 		// due to the high number of examples -- so we just stick to the approximate accuracy
-		if(singleSuggestionMode) {
+		if(singleSuggestionMode) {			
 			if(accuracy > bestAccuracy) {
 				bestAccuracy = accuracy;
 				bestDescription = description;
@@ -807,8 +820,8 @@ public class CELOE extends AbstractCELA implements Cloneable{
 //			bestEvaluatedDescriptions.add(node.getDescription(), accuracy, learningProblem);
 			
 //			System.out.println(bestEvaluatedDescriptions.getSet().size());
-		}
-		
+		}			
+	
 		return true;
 	}
 	
@@ -957,7 +970,7 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		runtimeVsBestScore.clear();
 	}
 	
-	private void printStats(boolean finalStats) {
+	private String getStates(boolean finalStats) {
 		long algorithmRuntime = System.nanoTime() - nanoStartTime;
 		long computationTime = algorithmRuntime - logTime;
 		
@@ -971,9 +984,11 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		
 		if(!finalStats)
 		{			
-			System.out.println("nr of nodes: " + searchTree.size());
-			System.out.println("tree depth: " + searchTree.getDepth());
-			System.out.println("rules tested: " + expressionTests);			
+			String states = "\nloop " + loop + ":" + "\n";
+			states += "nr of nodes: " + searchTree.size() + "\n";
+			states += "tree depth: " + searchTree.getDepth() + "\n";
+			states += "rules tested: " + expressionTests + "\n";				
+			return states;
 		}else
 		{						
 			double logPercetange = 100 * logTime/(double)algorithmRuntime;
@@ -986,22 +1001,45 @@ public class CELOE extends AbstractCELA implements Cloneable{
 			double subPercentage = 100 * subTime / (double) computationTime;
 			
 			double refinementPercentage = 100 * refineTime / (double) computationTime;
-			double instanceCheckPercentage = 100 * reasoner.getInstanceCheckReasoningTimeNs() / (double) computationTime;									
+			double instanceCheckPercentage = 100 * reasoner.getInstanceCheckReasoningTimeNs() / (double) computationTime;
 			
-			logger.info("========== FINAL STATS ==========");
-			System.out.println("Totally " + loop + " iterations required");
-			System.out.println("nr of nodes: " + searchTree.size());		
-			System.out.println("tree depth: " + searchTree.getDepth());
-			System.out.println("rules tested: " + expressionTests);
-						
-			System.out.println("Total runtime: " + Helper.prettyPrintNanoSeconds(algorithmRuntime));
-			System.out.println("Total log time: " + Helper.prettyPrintNanoSeconds(logTime) + " (" + df.format(logPercetange) + "%)");
-			System.out.println("Total computation time: " + Helper.prettyPrintNanoSeconds(computationTime) + " (" + df.format(computePercentage) + "%)");
-//			logger.info(" - expand node time: " + Helper.prettyPrintNanoSeconds(extendNodeTimeNs) + " (" + df.format(expandPercetange) + "%)");
-			logger.info("   - refinement: " + Helper.prettyPrintNanoSeconds(refineTime) + "(" + df.format(refinementPercentage) + "%)");
-			logger.info("   - reasoning: " + Helper.prettyPrintNanoSeconds(reasoningTime) + " (" + df.format(reasoningPercentage) + "%)");
-			logger.info("   - instance check time: " + Helper.prettyPrintNanoSeconds(reasoner.getInstanceCheckReasoningTimeNs()) + "(" + df.format(instanceCheckPercentage) + "%)");
-			logger.info("   - subsumption: " + Helper.prettyPrintNanoSeconds(subTime) + "(" + df.format(subPercentage) + "%)");
+			double treePercentage = 100 * treeTime / (double) computationTime;
+			
+			int lastSlash = searchTreeFile.lastIndexOf("/");
+			String test = searchTreeFile.substring(lastSlash+1, searchTreeFile.length()) + "_" + opName;
+			
+			String states = "==================" + test + "==================\n\n";
+			states += "Iterations: " + loop + "\n";
+			states += "Tree depth: " + searchTree.getDepth() + "\n";
+			states += "Nr nodes: " + searchTree.size() + "\n";
+			states += "Nr rules: " + expressionTests + "\n";
+			
+			states += "Total runtime: " + Helper.prettyPrintNanoSeconds(algorithmRuntime) + "\n";
+			states += "Total log time: " + Helper.prettyPrintNanoSeconds(logTime) + " (" + df.format(logPercetange) + "%)" + "\n";
+			states += "Total computation time: " + Helper.prettyPrintNanoSeconds(computationTime) + " (" + df.format(computePercentage) + "%)" + "\n";
+			states += "   - refinement: " + Helper.prettyPrintNanoSeconds(refineTime) + "(" + df.format(refinementPercentage) + "%)" + "\n";
+			states += "   - reasoning: " + Helper.prettyPrintNanoSeconds(reasoningTime) + " (" + df.format(reasoningPercentage) + "%)" + "\n";
+			states += "   - reasoning: " + Helper.prettyPrintNanoSeconds(treeTime) + " (" + df.format(treePercentage) + "%)" + "\n";
+			states += "   - instance check time: " + Helper.prettyPrintNanoSeconds(reasoner.getInstanceCheckReasoningTimeNs()) + "(" + df.format(instanceCheckPercentage) + "%)" + "\n";
+			states += "   - subsumption: " + Helper.prettyPrintNanoSeconds(subTime) + "(" + df.format(subPercentage) + "%)" + "\n";
+			
+			states += getSolutionString() + "\n\n";
+			return states;
+			
+//			logger.info("========== FINAL STATS ==========");
+//			System.out.println("Iterations: " + loop);
+//			System.out.println("Tree depth: " + searchTree.getDepth());
+//			System.out.println("Nr nodes: " + searchTree.size());					
+//			System.out.println("Nr rules: " + expressionTests);
+//						
+//			System.out.println("Total runtime: " + Helper.prettyPrintNanoSeconds(algorithmRuntime));
+//			System.out.println("Total log time: " + Helper.prettyPrintNanoSeconds(logTime) + " (" + df.format(logPercetange) + "%)");
+//			System.out.println("Total computation time: " + Helper.prettyPrintNanoSeconds(computationTime) + " (" + df.format(computePercentage) + "%)");
+////			logger.info(" - expand node time: " + Helper.prettyPrintNanoSeconds(extendNodeTimeNs) + " (" + df.format(expandPercetange) + "%)");
+//			logger.info("   - refinement: " + Helper.prettyPrintNanoSeconds(refineTime) + "(" + df.format(refinementPercentage) + "%)");
+//			logger.info("   - reasoning: " + Helper.prettyPrintNanoSeconds(reasoningTime) + " (" + df.format(reasoningPercentage) + "%)");
+//			logger.info("   - instance check time: " + Helper.prettyPrintNanoSeconds(reasoner.getInstanceCheckReasoningTimeNs()) + "(" + df.format(instanceCheckPercentage) + "%)");
+//			logger.info("   - subsumption: " + Helper.prettyPrintNanoSeconds(subTime) + "(" + df.format(subPercentage) + "%)");
 		
 		}
 	}
@@ -1009,8 +1047,7 @@ public class CELOE extends AbstractCELA implements Cloneable{
 	private void saveStatistics(String table, String op) {
 		/**
 		 * Write to excel
-		 */					
-		ExcelTable statistics;
+		 */							
 		try {
 			if(op.equals("rho"))
 				statistics = new ExcelTable(table, 0);
@@ -1035,17 +1072,33 @@ public class CELOE extends AbstractCELA implements Cloneable{
 			data.setLogTime(TimeUnit.MILLISECONDS.convert(logTime, TimeUnit.NANOSECONDS));
 			data.setComputeTime(TimeUnit.MILLISECONDS.convert(computationTime, TimeUnit.NANOSECONDS));
 			data.setRefinement(TimeUnit.MILLISECONDS.convert(refineTime, TimeUnit.NANOSECONDS));
+			data.setTreeTime(TimeUnit.MILLISECONDS.convert(treeTime, TimeUnit.NANOSECONDS));
 			data.setReasoning(TimeUnit.MILLISECONDS.convert(reasoningTime, TimeUnit.NANOSECONDS));
 			data.setInstCheck(TimeUnit.MILLISECONDS.convert(reasoner.getInstanceCheckReasoningTimeNs(), TimeUnit.NANOSECONDS));
 			data.setSubsumption(TimeUnit.MILLISECONDS.convert(subTime, TimeUnit.NANOSECONDS));
+			if(bestEvaluatedDescriptions.getBestAccuracy() == 1.0)
+				data.setSolution(descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
 			statistics.newData(data.getName(), data);
 					
 			statistics.write(table);
-			System.out.println("successfully saved " + table + " to disk");
+//			System.out.println("successfully saved " + table + " to disk");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}				
+	}
+	
+	private void saveStates(String filename, String states) throws FileNotFoundException {
+		try
+		{
+		    FileWriter fw = new FileWriter(filename,true); //the true will append the new data
+		    fw.write(states);
+		    fw.close();
+		}
+		catch(IOException ioe)
+		{
+		    System.err.println("IOException: " + ioe.getMessage());
+		}
 	}
 	
 	

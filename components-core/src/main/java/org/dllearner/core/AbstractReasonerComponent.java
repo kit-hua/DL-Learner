@@ -1482,6 +1482,15 @@ public abstract class AbstractReasonerComponent extends AbstractComponent implem
 	public long getOverallReasoningTimeNs() {
 		return overallReasoningTimeNs;
 	}
+	
+	public void resetTimer() {
+		this.otherReasoningTimeNs = 0;
+		this.overallReasoningTimeNs = 0;
+		this.reasoningDurationTmp = 0;
+		this.retrievalReasoningTimeNs = 0;
+		this.instanceCheckReasoningTimeNs = 0;
+		this.subsumptionReasoningTimeNs = 0;
+	}
 
 	public long getTimePerRetrievalNs() {
 		return retrievalReasoningTimeNs / nrOfRetrievals;

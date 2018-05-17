@@ -42,6 +42,7 @@ import java.util.TreeSet;
 public class ReasoningUtils implements Component {
 
 	final static Logger logger = LoggerFactory.getLogger(ReasoningUtils.class);
+	public long accTime = 0;
 
 	/**
 	 * binary counter to divide a set in 2 partitions
@@ -177,11 +178,12 @@ public class ReasoningUtils implements Component {
 	 * @return an array of Coverage counts, one entry for each input set
 	 */
 	public final CoverageCount[] getCoverageCount(OWLClassExpression concept,
-	                                              Collection<OWLIndividual>... collections) {
+	                                              Collection<OWLIndividual>... collections) {		
+		
 		Set[] sets = new Set [ collections.length ];
 		for (int i = 0; i < collections.length; ++i) {
 			sets[i] = makeSet(collections[i]);
-		}
+		}		
 		return getCoverageCount(concept, sets);
 	}
 
@@ -196,7 +198,7 @@ public class ReasoningUtils implements Component {
 												  Set<OWLIndividual>... sets) {
 		CoverageCount[] rv = new CoverageCount [ sets.length ];
 
-		if(!reasoner.isUseInstanceChecks()) {
+		if(!reasoner.isUseInstanceChecks()) {					
 			if (reasoner instanceof SPARQLReasoner &&
 					((SPARQLReasoner)reasoner).isUseValueLists()) {
 
@@ -210,7 +212,9 @@ public class ReasoningUtils implements Component {
 					rv[i].falseCount = sets[i].size()- trueCount;
 				}
 			} else {
+				long accStart = System.nanoTime();
 				SortedSet<OWLIndividual> individuals = reasoner.getIndividuals(concept);
+				accTime += System.nanoTime() - accStart;
 				for (int i = 0; i < sets.length; ++i) {
 					rv[i] = new CoverageCount();
 					rv[i].total = sets[i].size();
@@ -218,7 +222,8 @@ public class ReasoningUtils implements Component {
 					rv[i].trueCount  = Sets.intersection(sets[i], individuals).size();
 					rv[i].falseCount = Sets.difference(sets[i], individuals).size();
 				}
-			}
+				
+			}			
 		} else {
 			for (int i = 0; i < sets.length; ++i) {
 				rv[i] = new CoverageCount();
@@ -319,15 +324,19 @@ public class ReasoningUtils implements Component {
 	 * @return -1 when the concept is too weak or the accuracy value as calculated by the accuracy method
 	 */
 	public double getAccuracyOrTooWeak2(AccMethodTwoValued accuracyMethod, OWLClassExpression description, Collection<OWLIndividual> positiveExamples,
-			Collection<OWLIndividual> negativeExamples, double noise) {
+			Collection<OWLIndividual> negativeExamples, double noise) {		
 		if (accuracyMethod instanceof AccMethodApproximate) {
 			logger.trace("AccMethodApproximate");
 			return ((AccMethodTwoValuedApproximate) accuracyMethod).getAccApprox2(description, positiveExamples, negativeExamples, noise);
 		} else {
+			
 			CoverageCount[] cc = getCoverageCount(description, positiveExamples, negativeExamples);
+			
 			logger.trace("AccMethodExact: " + (new CoverageAdapter.CoverageCountAdapter2(cc)));
-			return getAccuracyOrTooWeakExact2(accuracyMethod, cc, noise);
-		}
+//			return getAccuracyOrTooWeakExact2(accuracyMethod, cc, noise);			
+			double acc = getAccuracyOrTooWeakExact2(accuracyMethod, cc, noise);			
+			return acc;
+		}		
 	}
 
 
@@ -339,7 +348,7 @@ public class ReasoningUtils implements Component {
 	 * @return @{AccMethodTwoValued.getAccOrTooWeak2}
 	 */
 	public double getAccuracyOrTooWeakExact2(AccMethodTwoValued accuracyMethod, CoverageCount[] cc, double noise) {
-//		return accuracyMethod.getAccOrTooWeak2(cc[0].trueCount, cc[0].falseCount, cc[1].trueCount, cc[1].falseCount, noise);
+//		return accuracyMethod.getAccOrTooWeak2(cc[0].trueCount, cc[0].falseCount, cc[1].trueCount, cc[1].falseCount, noise);		
 		CoverageAdapter.CoverageCountAdapter2 c2 = new CoverageAdapter.CoverageCountAdapter2(cc);
 		logger.trace("calling getAccOrToWeak2["+c2.tp()+","+c2.fn()+","+c2.fp()+","+c2.tn()+","+noise+"]");
 		return accuracyMethod.getAccOrTooWeak2(c2.tp(), c2.fn(), c2.fp(), c2.tn(), noise);

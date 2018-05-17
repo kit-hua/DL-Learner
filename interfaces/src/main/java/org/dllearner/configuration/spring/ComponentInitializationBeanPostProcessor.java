@@ -30,14 +30,14 @@ public class ComponentInitializationBeanPostProcessor implements BeanPostProcess
             String componentName = AnnComponentManager.getName(c);
             try {
             	
-            	logger.info("Initializing component '{}' of type {} ...", beanName, componentName);
+//            	logger.info("Initializing component '{}' of type {} ...", beanName, componentName);
                 long startTime = System.currentTimeMillis();
                 c.init();
                 long stopTime = System.currentTimeMillis();
                 long elapsedTime = stopTime - startTime;
 
-                logger.info("... initialized component '{}' in {}. Status: OK", 
-                		new String[]{beanName, Helper.prettyPrintMilliSeconds(elapsedTime)});
+//                logger.info("... initialized component '{}' in {}. Status: OK", 
+//                		new String[]{beanName, Helper.prettyPrintMilliSeconds(elapsedTime)});
             } catch (ComponentInitException e) {
                 throw new RuntimeException("Problem initializing the component \"" + componentName + "\" with beanName: " + beanName, e);
             } catch (Exception e) {

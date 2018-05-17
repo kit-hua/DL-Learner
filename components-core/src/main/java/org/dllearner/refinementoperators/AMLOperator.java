@@ -248,6 +248,9 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 	SortedSet<OWLClassExpression> topAMLInterfaces = new TreeSet<OWLClassExpression>();
 	SortedSet<OWLClassExpression> botAMLRoles = new TreeSet<OWLClassExpression>();
 	SortedSet<OWLClassExpression> botAMLInterfaces = new TreeSet<OWLClassExpression>();
+	OWLClassExpression amlIE = df.getOWLClass(IRI.create("http://www.ipr.kit.edu/aml_importer#IE"));
+	OWLClassExpression amlEI = df.getOWLClass(IRI.create("http://www.ipr.kit.edu/aml_importer#EI"));
+	OWLClassExpression amlIL = df.getOWLClass(IRI.create("http://www.ipr.kit.edu/aml_importer#IL"));
 
 	public AMLOperator() {	}
 
@@ -494,7 +497,12 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
      			if (ap.getValue() instanceof OWLLiteral) {
                      OWLLiteral val = (OWLLiteral) ap.getValue();                        
                      if (val.getLiteral().equals("RoleClass")) {
-                    	 	topAMLRoles.add(concept);
+//                    	 	/**
+//                    	 	 * @Hua: according to the paper, we need to test the disjointness
+//                    	 	 * However, this will filter out all the dummy concepts directly
+//                    	 	 */
+//                    	 	if(!isDisjoint(concept, OWL_THING))
+                    	 		topAMLRoles.add(concept);
                      }
                  }
      		}       
@@ -504,7 +512,12 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
      			if (ap.getValue() instanceof OWLLiteral) {
                      OWLLiteral val = (OWLLiteral) ap.getValue();                        
                      if (val.getLiteral().equals("InterfaceClass")) {
-                    	 	topAMLInterfaces.add(concept);
+//                    	 	/**
+//                 	 	 * @Hua: according to the paper, we need to test the disjointness
+//                 	 	 * However, this will filter out all the dummy concepts directly
+//                 	 	 */
+//                    	 	if(!isDisjoint(concept, OWL_THING))
+                    	 		topAMLInterfaces.add(concept);
                      }
                  }
      		}       
@@ -516,7 +529,12 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
                      OWLLiteral val = (OWLLiteral) ap.getValue();                        
                      if (val.getLiteral().equals("RoleClass")) {
                     	 	OWLObjectComplementOf negatedCandidate = df.getOWLObjectComplementOf(concept);
-                    	 	botAMLRoles.add(negatedCandidate);
+//                    	 	/**
+//                    	 	 * @Hua: according to the paper, we need to test the disjointness
+//                    	 	 * However, this will filter out all the dummy concepts directly
+//                    	 	 */
+//                    	 	if(!isDisjoint(negatedCandidate, OWL_THING))
+                    	 		botAMLRoles.add(negatedCandidate);
                      }
                  }
      		}       
@@ -527,7 +545,12 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
                      OWLLiteral val = (OWLLiteral) ap.getValue();                        
                      if (val.getLiteral().equals("InterfaceClass")) {
                     	 	OWLObjectComplementOf negatedCandidate = df.getOWLObjectComplementOf(concept);
-                    	 	botAMLInterfaces.add(negatedCandidate);
+//                    	 	/**
+//                    	 	 * @Hua: according to the paper, we need to test the disjointness
+//                    	 	 * However, this will filter out all the dummy concepts directly
+//                    	 	 */
+//                    	 	if(!isDisjoint(negatedCandidate, OWL_THING))
+                    	 		botAMLInterfaces.add(negatedCandidate);
                      }
                  }
      		}       
@@ -697,6 +720,11 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 			}
 
 		} else if (description instanceof OWLObjectSomeValuesFrom) {
+			
+//			if(maxLength > 6)
+//			{
+//				System.out.println();
+//			}
 			OWLObjectPropertyExpression role = ((OWLObjectSomeValuesFrom) description).getProperty();
 			OWLClassExpression filler = ((OWLObjectSomeValuesFrom) description).getFiller();
 
@@ -710,17 +738,14 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 			 * we can test with sucs with multiple IEs of specific role classes: hasIE.Robot and hasIE.IO and hasIE.XX ....
 			 */		
 
-			if(role.toString().equals("internalElement")) {
-				OWLClassExpression ie = df.getOWLClass(IRI.create("http://www.ipr.kit.edu/aml_importer#IE"));
-				tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, ie);
+			if(role.toString().equals("hasIE")) {				
+				tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, amlIE);
 			}
-			else if(role.toString().equals("externalInterface")) {
-				OWLClassExpression ei = df.getOWLClass(IRI.create("http://www.ipr.kit.edu/aml_importer#EI"));
-				tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, ei);		
+			else if(role.toString().equals("hasEI")) {				
+				tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, amlEI);		
 			}
-			else if(role.toString().equals("links")) {
-				OWLClassExpression li = df.getOWLClass(IRI.create("http://www.ipr.kit.edu/aml_importer#LI"));
-				tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, li);		
+			else if(role.toString().equals("hasIL")) {				
+				tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, amlIL);		
 			}
 			else {
 				OWLClassExpression domain = role.isAnonymous() ? opDomains.get(role.getNamedProperty()) : opRanges.get(role);
@@ -866,6 +891,18 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 			}
 		}
 
+		/**
+		 * @Hua: add a refinement of top to the current one
+		 * This is actually part of the rule 3,4,5,6,8 in the PhD paper
+		 * That is also way, that the rule 7 does not append a refinement to a intersection
+		 * since it is done for each individual part of the intersection in other cases
+		 * It is thus at the end of the refine method, because lots of other rules need this step
+		 * So to avoid duplicate code, it makes a condition here and do this for all
+		 * We additionally want check if the currDomain is EI or IL, 
+		 * for which we do not want any further intersections with atomic concepts or object properties  
+		 * but we still want data properties for EI and IL
+		 * In fact, topARefinementsCumulative of EI and IL does not have object properties, but still have atomic concepts
+		 */
 		// if a refinement is not Bottom, Top, ALL r.Bottom a refinement of top can be appended
 		if(!description.isOWLThing() && !description.isOWLNothing()
 				&& !(description instanceof OWLObjectAllValuesFrom && ((OWLObjectAllValuesFrom)description).getFiller().isOWLNothing())) {
@@ -879,13 +916,32 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 			} else if(topRefLength > topARefinementsLength.get(currDomain))
 				computeTopRefinements(topRefLength, currDomain);
 
+			/**
+			 * topRefLength is the allowed length of a refinement of THING 
+			 * that is going to be appended
+			 */
 			if(topRefLength>0) {
 				Set<OWLClassExpression> topRefs;
 				if(currDomain.isOWLThing())
 					topRefs = topRefinementsCumulative.get(topRefLength);
-				else
-					topRefs = topARefinementsCumulative.get(currDomain).get(topRefLength);
+				else {
+					if(currDomain.equals(amlEI) || currDomain.equals(amlIL)) {
+						topRefs = new TreeSet<OWLClassExpression>();
+						for(OWLClassExpression topRef : topARefinementsCumulative.get(currDomain).get(topRefLength)) {
+							if(!topRef.isAnonymous())
+								topRefs.add(topRef);
+						}
+					}else
+						topRefs = topARefinementsCumulative.get(currDomain).get(topRefLength);
+				}
+				
+				/**
+				 * filter out atomic concepts for EI and IL
+				 */				
 
+				/**
+				 * @Hua: this topRefs would contain things like AutomationMLBaseRole or AutomationMLBaseRole
+				 */
 				for(OWLClassExpression c : topRefs) {
 					// true if refinement should be skipped due to filters,
 					// false otherwise
@@ -932,11 +988,22 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 					// this can avoid a lot of superfluous computation in the algorithm e.g.
 					// when A1 looks good, so many refinements of the form (A1 OR (A2 AND A3))
 					// are generated which are all equal to A1 due to disjointness of A2 and A3
+					/**
+					 * @Hua: if c is disjoint to the current description, e.g. a filler of hasIE
+					 * then, c will be ignored, i.e. not added as intersection to description
+					 * Only tested for named classes. For property expressions, e.g. description = hasIE some RC, 
+					 * then all topRefs are added
+					 */
 					if(disjointChecks && !c.isAnonymous() && !description.isAnonymous() && isDisjoint(description, c)) {
 						skip = true;
 //						System.out.println(c + " ignored when refining " + description);
-					}
+					}else
+						skip = false;
 
+					/**
+					 * @Hua: Here we refine it with an intersection with one of the top refinements
+					 * For quantification it means here we apply the second rule in the PhD paper
+					 */
 					if(!skip) {
 						List<OWLClassExpression> operands = Lists.newArrayList(description, c);
 						Collections.sort(operands);
@@ -1148,7 +1215,7 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 	 * Similarly, topARefinements will always be empty
 	 */
 	private void computeTopRefinements(int maxLength, OWLClassExpression domain) {
-		System.out.println("computing refinements for top with length " + maxLength + " and domain " + domain);
+//		System.out.println("computing refinements for top with length " + maxLength + " and domain " + domain);
 		long topComputationTimeStartNs = System.nanoTime();
 //		System.out.println("computing top refinements for " + domain + " up to length " + maxLength);
 
@@ -1462,6 +1529,7 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 		 * @Hua: extended top level concept
 		 */
 		if(nc.toString().equals("IE")) {
+//			SortedSet<OWLClassExpression> m1 = getClassCandidatesRecursive(index, df.getOWLThing());
 			mA.get(nc).get(lengthMetric.classLength).addAll(topAMLRoles);
 		}
 		else if((nc.toString().equals("EI") || nc.toString().equals("IL"))) {		
@@ -1528,13 +1596,16 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 		}
 
 		/**
-		 * @Hua: The rest of M is same as M_T
+		 * @Hua: The rest of M is same as M_T for IE, but different for EI/IL,
+		 * Still we will use Thing for data properties, but filter out EI/IL in object properties
+		 * 
 		 */
 		// compute applicable properties				
 		OWLClassExpression domain = nc;		
-		if(nc.toString().equals("IE") || nc.toString().equals("EI") || nc.toString().equals("IL")) {
+		if(nc.toString().equals("IE") || nc.toString().equals("EI") || nc.toString().equals("IL")) {		
 			domain = df.getOWLThing();
-		}
+		}		
+				
 			
 //		computeMg(nc);
 		computeMg(domain);
@@ -1550,7 +1621,8 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 			}
 		}
 
-		if(useExistsConstructor) {
+		// filter out EI and IL for obj. properties: they do not have nested structures
+		if(useExistsConstructor && !nc.toString().equals("EI") && !nc.toString().equals("IL")) {
 			int lc = lengthMetric.objectSomeValuesLength + lengthMetric.objectProperyLength + lengthMetric.classLength;
 //			for(OWLObjectProperty r : mgr.get(nc)) {
 			for(OWLObjectProperty r : mgr.get(domain)) {
@@ -1558,7 +1630,8 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 			}
 		}
 
-		if(useAllConstructor) {
+		// filter out EI and IL for obj. properties: they do not have nested structures
+		if(useAllConstructor && !nc.toString().equals("EI") && !nc.toString().equals("IL")) {
 			// we allow \forall r.\top here because otherwise the operator
 			// becomes too difficult to manage due to dependencies between
 			// M_A and M_A' where A'=ran(r)
@@ -1613,7 +1686,7 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 			}
 		}
 
-		if(useHasValueConstructor) {
+		if(useHasValueConstructor && !nc.toString().equals("EI") && !nc.toString().equals("IL")) {
 			int lc = lengthMetric.objectHasValueLength + lengthMetric.objectProperyLength;
 			int lc_i = lengthMetric.objectHasValueLength + lengthMetric.objectInverseLength;
 //

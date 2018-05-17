@@ -614,5 +614,11 @@ public class FuzzyPosNegLPStandard extends FuzzyPosNegLP {
 				posAsPos, posAsNeg, negAsPos, negAsNeg,
 				accuracy);
 	}
+
+	@Override
+	public long getAccTime() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 	
 }

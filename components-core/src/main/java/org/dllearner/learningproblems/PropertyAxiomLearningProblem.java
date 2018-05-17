@@ -47,4 +47,10 @@ public class PropertyAxiomLearningProblem<T extends OWLPropertyAxiom> extends Ab
 		// TODO Auto-generated method stub
 		return 0;
 	}
+
+	@Override
+	public long getAccTime() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }

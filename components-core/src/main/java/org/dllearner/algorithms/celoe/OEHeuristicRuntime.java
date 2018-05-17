@@ -38,9 +38,9 @@ public class OEHeuristicRuntime extends AbstractHeuristic{
 	
 	
 	@ConfigOption(description = "penalty for long descriptions (horizontal expansion) (strong by default)", defaultValue = "0.1")
-	private double expansionPenaltyFactor = 0.1;
+	private double expansionPenaltyFactor = 0.1; //0.02;
 	@ConfigOption(description = "bonus for being better than parent node", defaultValue = "0.3")
-	private double gainBonusFactor = 0.3;
+	private double gainBonusFactor = 0.3; //0.5;
 	@ConfigOption(description = "penalty if a node OWLClassExpression has very many refinements since exploring such a node is computationally very expensive",
 			defaultValue = "0.0001")
 	private double nodeRefinementPenalty = 0.0001;

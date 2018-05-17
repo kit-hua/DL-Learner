@@ -91,6 +91,14 @@ public class LearningData {
 	public void setReasoning(long reasoning) {
 		data.put("ReasoningTime", reasoning);
 	}
+	
+	public long getTreeTime() {
+		return data.get("TreeTime");	
+	}
+	
+	public void setTreeTime(long treeTime) {
+		data.put("TreeTime", treeTime);
+	}
 
 	public long getInstCheck() {
 		return data.get("InstCheckTime");
@@ -122,6 +130,10 @@ public class LearningData {
 	
 	public double getReasoningPercentage() {
 		return 100 * getReasoning()/(double)getComputeTime();
+	}
+	
+	public double getTreePercentage() {
+		return 100 * getTreeTime() /(double)getComputeTime();
 	}
 	
 	public double getInstCheckPercentage() {

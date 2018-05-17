@@ -230,7 +230,7 @@ public class OWLAPIReasoner extends AbstractReasonerComponent {
 		atomicConcepts.removeIf(cls -> cls.getIRI().isReservedVocabulary());
 
 		 minimizer = new OWLClassExpressionMinimizer(df, this);
-		 logger.info("Loaded reasoner: " + reasoner.getReasonerName() + " (" + reasoner.getClass().getName() + ")");
+//		 logger.info("Loaded reasoner: " + reasoner.getReasonerName() + " (" + reasoner.getClass().getName() + ")");
 		 
 		 initialized = true;
     }

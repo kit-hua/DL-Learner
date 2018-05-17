@@ -33,6 +33,8 @@ public class ExcelTable {
 	Workbook workbook;
 	CellStyle headerStyle;
 	CellStyle dataStyle; 
+	CellStyle solutionStyle;
+	CellStyle boldStyle; 
 	int NrOfRows;
 	int NrOfCols;
 	
@@ -64,7 +66,18 @@ public class ExcelTable {
 		
 		dataStyle = workbook.createCellStyle();
 		dataStyle.setAlignment(HorizontalAlignment.CENTER);
+		
+		boldStyle = workbook.createCellStyle();
+		boldStyle.setAlignment(HorizontalAlignment.CENTER);
+		XSSFFont font = ((XSSFWorkbook) workbook).createFont();
+		font.setFontHeight(12);
+		font.setBold(true);
+//		font.setFontName("Regular");
+		boldStyle.setFont(font);
 
+		solutionStyle = workbook.createCellStyle();
+		solutionStyle.setAlignment(HorizontalAlignment.LEFT);
+		
 //		Map<Integer, List<String>> data = new HashMap<>();
 		header = sheet.getRow(0);			
 		for(Cell cell : header) {
@@ -84,54 +97,74 @@ public class ExcelTable {
 	}
 	
 	public void newData(String name, LearningData data) {
+		
+//		if(data.getSize() != NrOfCols) 
+//			System.err.println("Dimension of data different to dimension of table!");
+
 		Row row = sheet.createRow(NrOfRows++);
 		Cell nameCell = row.createCell(0);
 		nameCell.setCellValue(name);
 		nameCell.setCellStyle(dataStyle);
 		sheet.autoSizeColumn(0);
-		if(data.getSize() != NrOfCols) {
-			System.err.println("Dimension of data different to dimension of table!");
-		}else {
-			Iterator it = header.cellIterator();
-			int idx = 0;
-			Map<String, Long> elements = data.getData();
-			while(it.hasNext()) {
-				String field = it.next().toString();
+		Iterator it = header.cellIterator();
+		int idx = 0;
+		Map<String, Long> elements = data.getData();
+		while(it.hasNext()) {
+			String field = it.next().toString();
 //				System.out.println("fill data to: " + field);				
-				if(elements.containsKey(field)) {				
-					Cell cell = row.createCell(idx);
-					cell.setCellValue(elements.get(field));	
-					cell.setCellStyle(dataStyle);		
-					DecimalFormat df = new DecimalFormat("####0.00");
-					if(field.equals("LogTime")) {
-						Cell percentage = row.createCell(idx+1);
-						percentage.setCellValue(Double.parseDouble(df.format(data.getLogPercentage())));
-						percentage.setCellStyle(dataStyle);
-					}else if(field.equals("ComputeTime")) {
-						Cell percentage = row.createCell(idx+1);
-						percentage.setCellValue(Double.parseDouble(df.format(data.getComputePercentage())));
-						percentage.setCellStyle(dataStyle);
-					}else if(field.equals("RefinementTime")) {
-						Cell percentage = row.createCell(idx+1);
-						percentage.setCellValue(Double.parseDouble(df.format(data.getRefinementPercentage())));
-						percentage.setCellStyle(dataStyle);
-					}else if(field.equals("ReasoningTime")) {
-						Cell percentage = row.createCell(idx+1);
-						percentage.setCellValue(Double.parseDouble(df.format(data.getReasoningPercentage())));
-						percentage.setCellStyle(dataStyle);
-					}else if(field.equals("InstCheckTime")) {
-						Cell percentage = row.createCell(idx+1);
-						percentage.setCellValue(Double.parseDouble(df.format(data.getInstCheckPercentage())));
-						percentage.setCellStyle(dataStyle);
-					}else if(field.equals("SubsumptionTime")) {
-						Cell percentage = row.createCell(idx+1);
-						percentage.setCellValue(Double.parseDouble(df.format(data.getSubsumptionPercentage())));
-						percentage.setCellStyle(dataStyle);
-					}
+			if(elements.containsKey(field)) {				
+				Cell dataCell = row.createCell(idx);
+				dataCell.setCellValue(elements.get(field));	
+				dataCell.setCellStyle(dataStyle);		
+				DecimalFormat df = new DecimalFormat("####0.00");
+//				if(field.equals("#Rules"))
+//					dataCell.setCellStyle(boldStyle);
+//				else if(field.equals("#Nodes"))
+//					dataCell.setCellStyle(boldStyle);
+				if(field.equals("LogTime")) {
+					Cell percentage = row.createCell(idx+1);
+					percentage.setCellValue(Double.parseDouble(df.format(data.getLogPercentage())));
+					percentage.setCellStyle(dataStyle);
+				}else if(field.equals("ComputeTime")) {
+//					dataCell.setCellStyle(boldStyle);
+					Cell percentage = row.createCell(idx+1);
+					percentage.setCellValue(Double.parseDouble(df.format(data.getComputePercentage())));
+					percentage.setCellStyle(dataStyle);
+				}else if(field.equals("RefinementTime")) {
+//					dataCell.setCellStyle(boldStyle);
+					Cell percentage = row.createCell(idx+1);
+					percentage.setCellValue(Double.parseDouble(df.format(data.getRefinementPercentage())));
+					percentage.setCellStyle(dataStyle);
+				}else if(field.equals("ReasoningTime")) {
+//					dataCell.setCellStyle(boldStyle);
+					Cell percentage = row.createCell(idx+1);
+					percentage.setCellValue(Double.parseDouble(df.format(data.getReasoningPercentage())));
+					percentage.setCellStyle(dataStyle);
+				}else if(field.equals("TreeTime")) {
+//					dataCell.setCellStyle(boldStyle);
+					Cell percentage = row.createCell(idx+1);
+					percentage.setCellValue(Double.parseDouble(df.format(data.getTreePercentage())));
+					percentage.setCellStyle(dataStyle);
+				}else if(field.equals("InstCheckTime")) {
+					Cell percentage = row.createCell(idx+1);
+					percentage.setCellValue(Double.parseDouble(df.format(data.getInstCheckPercentage())));
+					percentage.setCellStyle(dataStyle);
+				}else if(field.equals("SubsumptionTime")) {
+					Cell percentage = row.createCell(idx+1);
+					percentage.setCellValue(Double.parseDouble(df.format(data.getSubsumptionPercentage())));
+					percentage.setCellStyle(dataStyle);
 				}
-				idx++;
-			}						
-		}
+			}
+			if(field.equals("Solution")) {
+				Cell cell = row.createCell(idx);
+				cell.setCellValue(data.getSolution());	
+				cell.setCellStyle(solutionStyle);	
+				sheet.autoSizeColumn(idx);
+			}
+				
+			idx++;
+		}						
+
 		
 	}
 	

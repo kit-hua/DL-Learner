@@ -311,4 +311,10 @@ public class PosOnlyLP extends AbstractClassExpressionLearningProblem<ScorePosOn
 	public void setPositiveExamples(Set<OWLIndividual> positiveExamples) {
 		this.positiveExamples = new TreeSet<>(positiveExamples);
 	}
+
+	@Override
+	public long getAccTime() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }

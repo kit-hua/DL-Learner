@@ -328,5 +328,11 @@ public class ClassLearningProblem extends AbstractClassExpressionLearningProblem
 		}
 		return cc[0].trueCount/(double)cc[0].total;
 	}
+
+	@Override
+	public long getAccTime() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }
 

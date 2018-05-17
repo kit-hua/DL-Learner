@@ -1,3 +1,5 @@
+package org.dllearner.cli;
+
 /**
  * Copyright (C) 2007-2011, Jens Lehmann
  *
@@ -17,7 +19,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-package org.dllearner.cli;
 
 import org.apache.log4j.Level;
 import org.dllearner.algorithms.decisiontrees.dsttdt.DSTTDTClassifier;
@@ -41,6 +42,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -64,7 +66,7 @@ import javax.swing.filechooser.FileSystemView;
  *
  */
 @ComponentAnn(name = "Command Line Interface", version = 0, shortName = "")
-public class CLI extends CLIBase2 {
+public class Benchmarker extends CLIBase2 {
 
 	private static Logger logger = LoggerFactory.getLogger(CLI.class);
 
@@ -84,11 +86,11 @@ public class CLI extends CLIBase2 {
 	private AbstractCELA la;
 	
 
-	public CLI() {
+	public Benchmarker() {
 		
 	}
 	
-	public CLI(File confFile) {
+	public Benchmarker(File confFile) {
 		this();
 		this.confFile = confFile;
 	}
@@ -156,7 +158,7 @@ public class CLI extends CLIBase2 {
 //				knowledgeSource = context.getBeansOfType(Knowledge1Source.class).entrySet().iterator().next().getValue();
 				for(Entry<String, LearningAlgorithm> entry : learningAlgs.entrySet()){
 					algorithm = entry.getValue();
-					logger.info("Running algorithm instance \"" + entry.getKey() + "\" (" + algorithm.getClass().getSimpleName() + ")");
+//					logger.info("Running algorithm instance \"" + entry.getKey() + "\" (" + algorithm.getClass().getSimpleName() + ")");
 					algorithm.start();
 				}
 			}
@@ -182,53 +184,14 @@ public class CLI extends CLIBase2 {
 	public AbstractCELA getLearningAlgorithm() {
 		return la;
 	}
-    
-	/**
-	 * @param args
-	 * @throws ParseException
-	 * @throws IOException
-	 * @throws ReasoningMethodUnsupportedException
-	 */
-	public static void main(String[] args) throws ParseException, IOException, ReasoningMethodUnsupportedException {
+	
+	private void test(File conf, int runs) throws FileNotFoundException {
 		
-//		System.out.println("DL-Learner " + Info.build + " [TODO: read pom.version and put it here (make sure that the code for getting the version also works in the release build!)] command line interface");
-		System.out.println("DL-Learner command line interface");
-		
-		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/ilp2018/4_nestedIE/test.conf");
-		
-		// currently, CLI has exactly one parameter - the conf file
-//		if(args.length == 0) {
-//			System.out.println("No argument found for the conf file, using default: " + conf);
-//			System.exit(0);
-//		}else {
-//			// read file and print and print a message if it does not exist
-//			conf = new File(args[args.length - 1]);
-//			if(!conf.exists()) {
-//				System.out.println("File \"" + conf + "\" does not exist.");
-//				System.exit(0);
-//			}
-//		}
-		
-//		try {
-//			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-//		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-//				| UnsupportedLookAndFeelException e1) {
-//			// TODO Auto-generated catch block
-//			e1.printStackTrace();
-//		}
-//		JFileChooser jfc = new JFileChooser("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/ilp2018/");
-//		int returnValue = jfc.showOpenDialog(null);
-//		if (returnValue == JFileChooser.APPROVE_OPTION) {
-//			conf = jfc.getSelectedFile();
-//			System.out.println("selected config file: " + conf);
-//		}		
-		
-		Resource confFile = new FileSystemResource(conf);
-		
+		Resource confFile = new FileSystemResource(conf);		
 		List<Resource> springConfigResources = new ArrayList<>();
-
 		int i = 0;
-		while(i<3) {
+		while(i<runs) {
+			System.out.println("\n - run " + i + ": ");
 			 try {
 		            //DL-Learner Configuration Object
 		            IConfiguration configuration = new ConfParserConfiguration(confFile);
@@ -271,6 +234,51 @@ public class CLI extends CLIBase2 {
 		        }
 			 i++;
 		}
+	}
+    
+	/**
+	 * @param args
+	 * @throws ParseException
+	 * @throws IOException
+	 * @throws ReasoningMethodUnsupportedException
+	 */
+	public static void main(String[] args) throws ParseException, IOException, ReasoningMethodUnsupportedException {
+	
+		System.out.println("Benchmarking AML concept learning");
+		String projectPath = "";
+		
+		if(args.length == 0) {
+			System.out.println("No argument found for the project path, quit...");
+			System.exit(0);
+		}else {
+			// read file and print and print a message if it does not exist
+			projectPath = args[args.length - 1];
+		}
+		
+		projectPath += "benchmarks/";
+		
+		Benchmarker benchmarker = new Benchmarker();
+		// go through all benchmarks in the project path
+		File[] tests = new File(projectPath).listFiles();
+		for(File test : tests) {
+			if (test.isFile() && test.getName().contains(".conf")) {
+		    		System.out.println("\n\nDoing use case: " + test.getName());
+		    		benchmarker.test(test, 1);
+			}
+		}
+//		File[] folders = new File(projectPath).listFiles();
+//		for (File folder : folders) {
+//			if(folder.getName().equals("ocel")) {
+//				System.out.println("\n\n====================== Doing use cases using OCEL heuristic ======================");
+//				File[] tests = new File(folder.getAbsolutePath()).listFiles();
+//				for(File test : tests) {
+//					if (test.isFile() && test.getName().contains(".conf")) {
+//				    		System.out.println("\n\nDoing use case: " + test.getName());
+//				    		benchmarker.test(test, 5);
+//					}
+//				}
+//			}		    
+//		}				
 		
 		System.out.println("Benchmark finished");
        
