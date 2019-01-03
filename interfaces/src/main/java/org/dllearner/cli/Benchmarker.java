@@ -21,6 +21,10 @@ package org.dllearner.cli;
  */
 
 import org.apache.log4j.Level;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.dllearner.algorithms.decisiontrees.dsttdt.DSTTDTClassifier;
 import org.dllearner.algorithms.decisiontrees.refinementoperators.DLTreesRefinementOperator;
 import org.dllearner.algorithms.decisiontrees.tdt.TDTClassifier;
@@ -42,11 +46,17 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -264,6 +274,10 @@ public class Benchmarker extends CLIBase2 {
 			if (test.isFile() && test.getName().contains(".conf")) {
 		    		System.out.println("\n\nDoing use case: " + test.getName());
 		    		benchmarker.test(test, 1);
+//		    		if(test.getName().contains("aml"))
+//		    			Files.move(Paths.get(test.getAbsolutePath()), Paths.get(projectPath+"done/aml/"+test.getName()), StandardCopyOption.REPLACE_EXISTING);
+//		    		else
+//		    			Files.move(Paths.get(test.getAbsolutePath()), Paths.get(projectPath+"done/rho/"+test.getName()), StandardCopyOption.REPLACE_EXISTING);
 			}
 		}
 //		File[] folders = new File(projectPath).listFiles();
@@ -280,8 +294,7 @@ public class Benchmarker extends CLIBase2 {
 //			}		    
 //		}				
 		
-		System.out.println("Benchmark finished");
-       
+		System.out.println("learning finished");				
     }
 
 	public boolean isPerformCrossValidation() {

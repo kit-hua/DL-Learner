@@ -839,7 +839,7 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 					// we only add \forall r.C to an intersection if there is
 					// already some existential restriction \exists r.C
 					if(useSomeOnly) {
-						skip = !isCombinable(description, c);
+						skip = !isCombinable(description, c);						
 					}
 
 					// check for double datatype properties
@@ -862,6 +862,7 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 						skip = true;
 //						System.out.println(c + " ignored when refining " + description);
 					}
+//					System.out.println("description: " + description + ", c: " + c + " - " + skip);
 
 					if(!skip) {
 						List<OWLClassExpression> operands = Lists.newArrayList(description, c);

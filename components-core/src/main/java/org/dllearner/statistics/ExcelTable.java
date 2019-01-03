@@ -31,7 +31,6 @@ public class ExcelTable {
 	Row header;
 	Sheet sheet;
 	Workbook workbook;
-	CellStyle headerStyle;
 	CellStyle dataStyle; 
 	CellStyle solutionStyle;
 	CellStyle boldStyle; 
@@ -43,26 +42,13 @@ public class ExcelTable {
 		sheet = workbook.createSheet("rho");
 		NrOfRows = 0;
 		NrOfCols = 0;
-		header = sheet.createRow(NrOfRows);
-		
-		
-		headerStyle = workbook.createCellStyle();
-//		headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
-//		headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-		
-		XSSFFont font = ((XSSFWorkbook) workbook).createFont();
-		font.setFontName("Arial");
-		font.setFontHeightInPoints((short) 16);
-		font.setBold(true);
-		headerStyle.setFont(font);
-//		headerStyle.setShrinkToFit(true);
-	}	
+		header = sheet.createRow(NrOfRows);	
+	}		
 	
-	
-	public ExcelTable(String filename, int idx) throws IOException {
+	public ExcelTable(String filename, int sheetIdx) throws IOException {
 		FileInputStream template = new FileInputStream(new File(filename));
 		workbook = new XSSFWorkbook(template);
-		sheet = workbook.getSheetAt(idx);
+		sheet = workbook.getSheetAt(sheetIdx);
 		
 		dataStyle = workbook.createCellStyle();
 		dataStyle.setAlignment(HorizontalAlignment.CENTER);
@@ -78,28 +64,38 @@ public class ExcelTable {
 		solutionStyle = workbook.createCellStyle();
 		solutionStyle.setAlignment(HorizontalAlignment.LEFT);
 		
-//		Map<Integer, List<String>> data = new HashMap<>();
-		header = sheet.getRow(0);			
-		for(Cell cell : header) {
-			if(!cell.toString().isEmpty()) {
-				NrOfCols++;
-			}
-		}
+		header = sheet.getRow(0);
+//		Row secondRow = sheet.getRow(1);
+//		
+//		if(secondRow != null) {
+//			NrOfCols = secondRow.getLastCellNum() + 1;
+//		}else
+//			NrOfCols = header.getLastCellNum() + 1;
 		NrOfRows = sheet.getPhysicalNumberOfRows();
 	}
 	
-	public void newheader(String name, short index) {
-		Cell headerCell = header.createCell(index);
-		headerCell.setCellValue(name);
-		headerCell.setCellStyle(headerStyle);
-		sheet.autoSizeColumn(index);
-		NrOfCols++;
-	}
-	
+//	public void newheader(String name, short index) {
+//		Cell headerCell = header.createCell(index);
+//		headerCell.setCellValue(name);
+//		headerCell.setCellStyle(dataStyle);
+//		sheet.autoSizeColumn(index);
+//		NrOfCols++;
+//	}
+//	
+//	private void newData(String label, int rowIdx, long data) {
+//		if(sheet.getPhysicalNumberOfRows() < rowIdx+1) {
+//			System.out.println("error: the requested row does not exist yet!");
+//		}
+//		
+//		Row row = sheet.getRow(rowIdx);
+//		Cell dataCell = row.createCell(idx);
+//		dataCell.setCellValue(elements.get(field));	
+//		dataCell.setCellStyle(dataStyle);		
+//		DecimalFormat df = new DecimalFormat("####0.00");
+//		
+//	}
+//	
 	public void newData(String name, LearningData data) {
-		
-//		if(data.getSize() != NrOfCols) 
-//			System.err.println("Dimension of data different to dimension of table!");
 
 		Row row = sheet.createRow(NrOfRows++);
 		Cell nameCell = row.createCell(0);
@@ -112,7 +108,8 @@ public class ExcelTable {
 		while(it.hasNext()) {
 			String field = it.next().toString();
 //				System.out.println("fill data to: " + field);				
-			if(elements.containsKey(field)) {				
+			if(elements.containsKey(field)) {			
+//				System.out.println("found value " + elements.get(field) + " for field: " + field);
 				Cell dataCell = row.createCell(idx);
 				dataCell.setCellValue(elements.get(field));	
 				dataCell.setCellStyle(dataStyle);		
@@ -120,36 +117,36 @@ public class ExcelTable {
 //				if(field.equals("#Rules"))
 //					dataCell.setCellStyle(boldStyle);
 //				else if(field.equals("#Nodes"))
-//					dataCell.setCellStyle(boldStyle);
-				if(field.equals("LogTime")) {
+//					dataCell.setCellStyle(boldStyle);				
+				if(field.equals("LogTime")) {// && header.getLastCellNum() == NrOfCols-1) {
 					Cell percentage = row.createCell(idx+1);
 					percentage.setCellValue(Double.parseDouble(df.format(data.getLogPercentage())));
 					percentage.setCellStyle(dataStyle);
-				}else if(field.equals("ComputeTime")) {
+				}else if(field.equals("ComputeTime")) {// && header.getLastCellNum() == NrOfCols-1) {
 //					dataCell.setCellStyle(boldStyle);
 					Cell percentage = row.createCell(idx+1);
 					percentage.setCellValue(Double.parseDouble(df.format(data.getComputePercentage())));
 					percentage.setCellStyle(dataStyle);
-				}else if(field.equals("RefinementTime")) {
+				}else if(field.equals("RefinementTime")) {// && header.getLastCellNum() == NrOfCols-1) {
 //					dataCell.setCellStyle(boldStyle);
 					Cell percentage = row.createCell(idx+1);
 					percentage.setCellValue(Double.parseDouble(df.format(data.getRefinementPercentage())));
 					percentage.setCellStyle(dataStyle);
-				}else if(field.equals("ReasoningTime")) {
+				}else if(field.equals("ReasoningTime")) {// && header.getLastCellNum() == NrOfCols-1) {
 //					dataCell.setCellStyle(boldStyle);
 					Cell percentage = row.createCell(idx+1);
 					percentage.setCellValue(Double.parseDouble(df.format(data.getReasoningPercentage())));
 					percentage.setCellStyle(dataStyle);
-				}else if(field.equals("TreeTime")) {
+				}else if(field.equals("TreeTime")) {// && header.getLastCellNum() == NrOfCols-1) {
 //					dataCell.setCellStyle(boldStyle);
 					Cell percentage = row.createCell(idx+1);
 					percentage.setCellValue(Double.parseDouble(df.format(data.getTreePercentage())));
 					percentage.setCellStyle(dataStyle);
-				}else if(field.equals("InstCheckTime")) {
+				}else if(field.equals("InstCheckTime")) {// && header.getLastCellNum() == NrOfCols-1) {
 					Cell percentage = row.createCell(idx+1);
 					percentage.setCellValue(Double.parseDouble(df.format(data.getInstCheckPercentage())));
 					percentage.setCellStyle(dataStyle);
-				}else if(field.equals("SubsumptionTime")) {
+				}else if(field.equals("SubsumptionTime")) {// && header.getLastCellNum() == NrOfCols-1) {
 					Cell percentage = row.createCell(idx+1);
 					percentage.setCellValue(Double.parseDouble(df.format(data.getSubsumptionPercentage())));
 					percentage.setCellStyle(dataStyle);
@@ -174,32 +171,29 @@ public class ExcelTable {
 		workbook.close();
 	}
 	
-	public static void main(String[] args) throws Throwable {
-		
-		String path = "/Users/aris/Documents/repositories/ipr/aml_import/resources/output/";
-		String template = "statistics.xlsx";
-		String output = "rho.xlsx";
-		
-		
-		ExcelTable statistics = new ExcelTable(path + template, 1);
-		
-		LearningData data = new LearningData("dummy3_1");
-		data.setIterations(1425);
-		data.setDepth(11);
-		data.setNrOfNodes(1579);
-		data.setNrOfRules(78693);
-		data.setRunTime(4211);
-		data.setLogTime(124);
-		data.setComputeTime(4087);
-		data.setRefinement(786);
-		data.setReasoning(2240);
-		data.setInstCheck(0);
-		data.setSubsumption(0);
-	
-		statistics.newData(data.getName(), data);
-				
-		statistics.write(path + template);
-		System.out.println("successfully saved " + template + " to disk");
-	}
+//	public static void main(String[] args) throws Throwable {
+//		
+//		String path = "/Users/aris/Documents/repositories/ipr/aml_import/resources/output/";
+//		String template = "statistics.xlsx";		
+//		ExcelTable statistics = new ExcelTable(path + template, 1);
+//		
+//		LearningData data = new LearningData("dummy3_1");
+//		data.setIterations(1425);
+//		data.setDepth(11);
+//		data.setNrOfNodes(1579);
+//		data.setNrOfRules(78693);
+//		data.setRunTime(4211);
+//		data.setLogTime(124);
+//		data.setComputeTime(4087);
+//		data.setRefinement(786);
+//		data.setReasoning(2240);
+//		data.setInstCheck(0);
+//		data.setSubsumption(0);
+//	
+//		statistics.newData(data.getName(), data);
+//				
+//		statistics.write(path + template);
+//		System.out.println("successfully saved " + template + " to disk");
+//	}
 }
 

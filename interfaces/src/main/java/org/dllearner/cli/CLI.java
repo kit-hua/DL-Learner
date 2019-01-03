@@ -52,6 +52,8 @@ import java.util.Map.Entry;
 import javax.swing.JFileChooser;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 
 //import org.dllearner.algorithms.qtl.QTL2;
@@ -194,7 +196,10 @@ public class CLI extends CLIBase2 {
 //		System.out.println("DL-Learner " + Info.build + " [TODO: read pom.version and put it here (make sure that the code for getting the version also works in the release build!)] command line interface");
 		System.out.println("DL-Learner command line interface");
 		
-		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/ilp2018/4_nestedIE/test.conf");
+//		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/ilp2018/4_nestedIE/test.conf");
+//		File conf = new File("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/case2018/Final/T1_OCEL.conf");
+		File conf = new File("../examples/family/father_posonly.conf");
+		System.out.println(conf.getAbsolutePath());
 		
 		// currently, CLI has exactly one parameter - the conf file
 //		if(args.length == 0) {
@@ -216,7 +221,10 @@ public class CLI extends CLIBase2 {
 //			// TODO Auto-generated catch block
 //			e1.printStackTrace();
 //		}
-//		JFileChooser jfc = new JFileChooser("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/ilp2018/");
+		
+//		JFileChooser jfc = new JFileChooser("/Users/aris/Documents/repositories/ipr/aml_import/resources/output/");
+//		FileFilter filter = new FileNameExtensionFilter("config","conf");
+//		jfc.setFileFilter(filter);
 //		int returnValue = jfc.showOpenDialog(null);
 //		if (returnValue == JFileChooser.APPROVE_OPTION) {
 //			conf = jfc.getSelectedFile();
@@ -238,8 +246,8 @@ public class CLI extends CLIBase2 {
 
 		            // TODO: later we could check which command line interface is specified in the conf file
 		            // for now we just use the default one
-
 		            CLIBase2 cli;
+		            
 		            
 		            if(context.containsBean("cli")) {
 		                cli = (CLIBase2) context.getBean("cli");

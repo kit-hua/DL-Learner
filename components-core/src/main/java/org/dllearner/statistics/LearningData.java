@@ -6,14 +6,28 @@ import java.util.Map;
 
 public class LearningData {
 	
-	public Map<String, Long> data = new HashMap<String, Long>();
+	private Map<String, Long> data = new HashMap<String, Long>();
 	
-	public String solution;
+	private String solution;
 	
 	private String name;
 	
+	private double logPercentage = -1; 
+	private double computePercentage = -1;
+	private double refinementPercentage = -1;
+	private double reasoningPercentage = -1;
+	private double treePercentage = -1;
+	private double instCheckPercentage = -1;
+	private double subsumptionPercentage = -1;
+	
+	public LearningData() {}
+	
 	public LearningData(String name) {
 		this.name = name;		
+	}
+	
+	public void setName(String name) {
+		this.name = name;
 	}
 	
 	public String getName() {
@@ -69,6 +83,7 @@ public class LearningData {
 	}
 
 	public long getComputeTime() {
+		
 		return data.get("ComputeTime");
 	}
 
@@ -117,31 +132,45 @@ public class LearningData {
 	}
 
 	public double getComputePercentage() {
-		return 100 * getComputeTime()/(double)getRunTime();
+		if(computePercentage == -1)
+			return 100 * getComputeTime()/(double)getRunTime();
+		return computePercentage;
 	}
 	
 	public double getLogPercentage() {
-		return 100 * getLogTime()/(double)getRunTime();
+		if (logPercentage == -1)
+			return 100 * getLogTime()/(double)getRunTime();
+		return logPercentage;
 	}
 	
 	public double getRefinementPercentage() {
-		return 100 * getRefinement()/(double)getComputeTime();
+		if(refinementPercentage == -1)
+			return 100 * getRefinement()/(double)getComputeTime();
+		return refinementPercentage;
 	}
 	
 	public double getReasoningPercentage() {
-		return 100 * getReasoning()/(double)getComputeTime();
+		if(reasoningPercentage == -1)
+			return 100 * getReasoning()/(double)getComputeTime();
+		return reasoningPercentage;
 	}
 	
 	public double getTreePercentage() {
-		return 100 * getTreeTime() /(double)getComputeTime();
+		if(treePercentage == -1)
+			return 100 * getTreeTime() /(double)getComputeTime();
+		return treePercentage;
 	}
 	
 	public double getInstCheckPercentage() {
-		return 100 * getInstCheck()/(double)getComputeTime();
+		if(instCheckPercentage == -1)
+			return 100 * getInstCheck()/(double)getComputeTime();
+		return instCheckPercentage;
 	}
 	
 	public double getSubsumptionPercentage() {
-		return 100 * getSubsumption()/(double)getComputeTime();
+		if(subsumptionPercentage == -1)
+			return 100 * getSubsumption()/(double)getComputeTime();
+		return	subsumptionPercentage;
 	}
 	
 	public String getSolution() {
@@ -152,11 +181,51 @@ public class LearningData {
 		this.solution = solution;
 	}
 
+	public void setData(Map<String, Long> data) {
+		this.data = data;
+	}
+
+	public void setLogPercentage(double logPercentage) {
+		this.logPercentage = logPercentage;
+	}
+
+	public void setComputePercentage(double computePercentage) {
+		this.computePercentage = computePercentage;
+	}
+
+	public void setRefinementPercentage(double refinementPercentage) {
+		this.refinementPercentage = refinementPercentage;
+	}
+
+	public void setReasoningPercentage(double reasoningPercentage) {
+		this.reasoningPercentage = reasoningPercentage;
+	}
+
+	public void setTreePercentage(double treePercentage) {
+		this.treePercentage = treePercentage;
+	}
+
+	public void setInstCheckPercentage(double instCheckPercentage) {
+		this.instCheckPercentage = instCheckPercentage;
+	}
+
+	public void setSubsumptionPercentage(double subsumptionPercentage) {
+		this.subsumptionPercentage = subsumptionPercentage;
+	}
+
 	public Map<String, Long> getData(){
 		return data;
 	}
 	
 	public int getSize() {
 		return data.size();
+	}
+	
+	public String toString() {
+		return name + ": " + data.toString();
+	}
+	
+	public String getDataString() {
+		return data.toString();
 	}
 }
