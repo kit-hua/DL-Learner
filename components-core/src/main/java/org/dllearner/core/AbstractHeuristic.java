@@ -42,6 +42,10 @@ public abstract class AbstractHeuristic extends AbstractComponent implements Heu
 		initialized = true;
 	}
 	
+	/**
+	 * @Hua: compare the quality of two nodes based on their score and description
+	 * 		 - we have extended the description with information about score
+	 */
 	@Override
 	public int compare(OENode node1, OENode node2) {
 		return ComparisonChain.start()

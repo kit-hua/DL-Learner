@@ -1251,4 +1251,9 @@ public class OWLAPIReasoner extends AbstractReasonerComponent {
 		System.out.println(o.getDataPropertiesInSignature());
 		System.out.println(o.getIndividualsInSignature().size());
 	}
+
+	@Override
+	public Collection<OWLAnnotation> getAnnotations(OWLClassExpression concept) {
+		return EntitySearcher.getAnnotations((OWLEntity) concept, ontology);
+	}
 }

@@ -21,7 +21,9 @@ package org.dllearner.algorithms.celoe;
 import java.text.DecimalFormat;
 import java.util.Map;
 
+import org.dllearner.core.AbstractHeuristic;
 import org.dllearner.core.AbstractSearchTreeNode;
+import org.dllearner.core.ComponentInitException;
 import org.dllearner.utilities.datastructures.SearchTreeNode;
 import org.dllearner.utilities.owl.OWLAPIRenderers;
 import org.dllearner.utilities.owl.OWLClassExpressionUtils;
@@ -60,7 +62,11 @@ public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTree
 	public OENode(OWLClassExpression description, double accuracy) {
 		this.description = description;
 		this.accuracy = accuracy;
-		this.horizontalExpansion = OWLClassExpressionUtils.getLength(description) - 1;
+		/**
+		 * @Hua: why -1
+		 */
+		this.horizontalExpansion = OWLClassExpressionUtils.getLength(description);
+//		this.horizontalExpansion = OWLClassExpressionUtils.getLength(description) - 1;
 	}
 	
 //	public OENode(OENode parentNode, OWLClassExpression description, double accuracy) {
@@ -110,6 +116,17 @@ public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTree
 		String ret = OWLAPIRenderers.toDLSyntax(description) + " [";
 //		String ret = OWLAPIRenderers.toManchesterOWLSyntax(description) + " [";
 //		ret += "score" + NLPHeuristic.getNodeScore(this) + ",";
+		/**
+		 * @Hua: show the heuristic score in the state report
+		 */
+		OEHeuristicRuntime her = new OEHeuristicRuntime();		
+		try {
+			her.init();
+		} catch (ComponentInitException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		ret += "h:" + her.getNodeScore(this) + ", ";
 		ret += "acc:" + dfPercent.format(accuracy) + ", ";
 		ret += "he:" + horizontalExpansion + ", ";
 		ret += "c:" + children.size() + ", ";

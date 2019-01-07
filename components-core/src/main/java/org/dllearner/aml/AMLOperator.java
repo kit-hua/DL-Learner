@@ -1,22 +1,7 @@
 /**
- * Copyright (C) 2007 - 2016, Jens Lehmann
- *
- * This file is part of DL-Learner.
- *
- * DL-Learner is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * DL-Learner is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 
  */
-package org.dllearner.refinementoperators;
+package org.dllearner.aml;
 
 import com.google.common.collect.*;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
@@ -26,6 +11,11 @@ import org.dllearner.core.config.ConfigOption;
 import org.dllearner.core.options.CommonConfigOptions;
 import org.dllearner.core.owl.*;
 import org.dllearner.reasoning.SPARQLReasoner;
+import org.dllearner.refinementoperators.CustomHierarchyRefinementOperator;
+import org.dllearner.refinementoperators.CustomStartRefinementOperator;
+import org.dllearner.refinementoperators.MathOperations;
+import org.dllearner.refinementoperators.ReasoningBasedRefinementOperator;
+import org.dllearner.refinementoperators.RefinementOperatorAdapter;
 import org.dllearner.utilities.OWLAPIUtils;
 import org.dllearner.utilities.owl.ConceptTransformation;
 import org.dllearner.utilities.owl.OWLClassExpressionLengthMetric;
@@ -34,6 +24,7 @@ import org.dllearner.utilities.split.DefaultDateTimeValuesSplitter;
 import org.dllearner.utilities.split.DefaultNumericValuesSplitter;
 import org.dllearner.utilities.split.ValuesSplitter;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.search.EntitySearcher;
 import org.semanticweb.owlapi.vocab.OWLFacet;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 import org.slf4j.Logger;
@@ -53,32 +44,22 @@ import static com.google.common.primitives.Ints.max;
 import static java.util.stream.Collectors.summingInt;
 
 /**
- * A downward refinement operator, which makes use of domains
- * and ranges of properties. The operator is currently under
- * development. Its aim is to span a much "cleaner" and smaller search
- * tree compared to RhoDown by omitting many class descriptions,
- * which are obviously too weak, because they violate
- * domain/range restrictions. Furthermore, it makes use of disjoint
- * classes in the knowledge base.
- *
- * Note: Some of the code has moved to {@link Utility} in a modified
- * form to make it accessible for implementations of other refinement
- * operators. These utility methods may be completed and carefully
- * integrated back later.
- *
- * @author Jens Lehmann
+ * @author Yingbing Hua, yingbing.hua@kit.edu
  *
  */
-@ComponentAnn(name = "rho refinement operator", shortName = "rho", version = 0.8)
-public class RhoDRDown extends RefinementOperatorAdapter implements Component, CustomHierarchyRefinementOperator, CustomStartRefinementOperator, ReasoningBasedRefinementOperator {
+@ComponentAnn(name = "aml refinement operator", shortName = "aml", version = 0.8)
+public class AMLOperator extends RefinementOperatorAdapter implements Component, CustomHierarchyRefinementOperator, CustomStartRefinementOperator, ReasoningBasedRefinementOperator {
 
-	private static Logger logger = LoggerFactory.getLogger(RhoDRDown.class);
+	private static Logger logger = LoggerFactory.getLogger(org.dllearner.aml.AMLOperator.class);
 	private final static Marker sparql_debug = new BasicMarkerFactory().getMarker("SD");
 
 	private static final OWLClass OWL_THING = new OWLClassImpl(
             OWLRDFVocabulary.OWL_THING.getIRI());
 
-	@ConfigOption(description = "the reasoner to use")
+	/**
+	 * @Hua: change following config parameters to private for AML operator
+	 */
+	@ConfigOption(description = "the reasoner to use")	
 	private AbstractReasonerComponent reasoner;
 
 	//@ConfigOption(description = "the learning algorithm")
@@ -125,13 +106,13 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 	// the sets M_\top and M_A
 	private Map<Integer,SortedSet<OWLClassExpression>> m = new TreeMap<>();
 	private Map<OWLClassExpression,Map<Integer,SortedSet<OWLClassExpression>>> mA = new TreeMap<>();
-
+	
+	// @see MathOperations.getCombos
 	/**
 	 * combos is the logical possibilities of combining elements from M_B using disjunctions
 	 * Possibilities w.r.t. maximal length of the refinement.
 	 * For example, max length = 3, possible combos are (3), (1,2), (2,1), (1,1,1)
 	 */
-	// @see MathOperations.getCombos
 	private Map<Integer, List<List<Integer>>> combos = new HashMap<>();
 
 	// refinements of the top concept ordered by length
@@ -219,7 +200,10 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 	@ConfigOption(description="support of string datatypes (xsd:string), e.g. \u2203 r.{\"SOME_STRING\"} ",defaultValue="false")
 	private boolean useStringDatatypes = false;
 
-	@ConfigOption(defaultValue="true", description = "skip combination of intersection between disjoint classes")
+	/**
+	 * @Hua: changed to private for AML operator 
+	 */
+	@ConfigOption(defaultValue="true", description = "skip combination of intersection between disjoint classes")	
 	private boolean disjointChecks = true;
 
 	@ConfigOption(defaultValue="true")
@@ -228,6 +212,9 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 	@ConfigOption(defaultValue="false", description = "if enabled, generalise by removing parts of a disjunction")
 	private boolean dropDisjuncts = false;
 
+	/**
+	 * @Hua: changed to private for AML operator 
+	 */
 	@ConfigOption(description="universal restrictions on a property r are only used when there is already a cardinality and/or existential restriction on r",
 			defaultValue="true")
 	private boolean useSomeOnly = true;
@@ -244,11 +231,24 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 
 	@ConfigOption(description = "class expression length metric (should match learning algorithm usage)", defaultValue = "default cel_metric")
 	private OWLClassExpressionLengthMetric lengthMetric = OWLClassExpressionLengthMetric.getDefaultMetric();
+	
 	private OWLDataFactory df = new OWLDataFactoryImpl();
+	
+	/**
+	 * @Hua: preprocess AML roles and interfaces
+	 */
+	SortedSet<OWLClassExpression> topAMLRoles = new TreeSet<OWLClassExpression>();
+	SortedSet<OWLClassExpression> topAMLInterfaces = new TreeSet<OWLClassExpression>();
+	SortedSet<OWLClassExpression> botAMLRoles = new TreeSet<OWLClassExpression>();
+	SortedSet<OWLClassExpression> botAMLInterfaces = new TreeSet<OWLClassExpression>();
+	OWLClassExpression amlIE = df.getOWLClass(IRI.create("http://www.ipr.kit.edu/aml_importer#IE"));
+	OWLClassExpression amlEI = df.getOWLClass(IRI.create("http://www.ipr.kit.edu/aml_importer#EI"));
+	OWLClassExpression amlIL = df.getOWLClass(IRI.create("http://www.ipr.kit.edu/aml_importer#IL"));
 
-	public RhoDRDown() {}
+	public AMLOperator() {	}
 
-	public RhoDRDown(RhoDRDown op) {
+
+	public AMLOperator(AMLOperator op) {
 		setApplyAllFilter(op.applyAllFilter);
 		setCardinalityLimit(op.cardinalityLimit);
 		setClassHierarchy(op.classHierarchy);
@@ -272,6 +272,7 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 		setUseNumericDatatypes(op.useNumericDatatypes);
 		initialized = false;
 	}
+
 
 	@Override
     public void init() throws ComponentInitException {
@@ -480,11 +481,78 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 		if(dataPropertyHierarchy == null) {
 			dataPropertyHierarchy = reasoner.getDatatypePropertyHierarchy();
 		}
+				
 
-		initialized = true;
+		SortedSet<OWLClassExpression> topConcepts = getClassCandidates(df.getOWLThing());
+		SortedSet<OWLClassExpression> botConcepts = classHierarchy.getSuperClasses(df.getOWLNothing(), true);
+		for(OWLClassExpression concept : topConcepts) {
+			for(OWLAnnotation ap : reasoner.getAnnotations(concept)) {
+     			if (ap.getValue() instanceof OWLLiteral) {
+                     OWLLiteral val = (OWLLiteral) ap.getValue();                        
+                     if (val.getLiteral().equals("RoleClass")) {
+//                    	 	/**
+//                    	 	 * @Hua: according to the paper, we need to test the disjointness
+//                    	 	 * However, this will filter out all the dummy concepts directly
+//                    	 	 */
+//                    	 	if(!isDisjoint(concept, OWL_THING))
+                    	 		topAMLRoles.add(concept);
+                     }
+                 }
+     		}       
+		}		
+		for(OWLClassExpression concept : topConcepts) {
+			for(OWLAnnotation ap : reasoner.getAnnotations(concept)) {
+     			if (ap.getValue() instanceof OWLLiteral) {
+                     OWLLiteral val = (OWLLiteral) ap.getValue();                        
+                     if (val.getLiteral().equals("InterfaceClass")) {
+//                    	 	/**
+//                 	 	 * @Hua: according to the paper, we need to test the disjointness
+//                 	 	 * However, this will filter out all the dummy concepts directly
+//                 	 	 */
+//                    	 	if(!isDisjoint(concept, OWL_THING))
+                    	 		topAMLInterfaces.add(concept);
+                     }
+                 }
+     		}       
+		}
+				
+		for(OWLClassExpression concept : botConcepts) {
+			for(OWLAnnotation ap : reasoner.getAnnotations(concept)) {
+     			if (ap.getValue() instanceof OWLLiteral) {
+                     OWLLiteral val = (OWLLiteral) ap.getValue();                        
+                     if (val.getLiteral().equals("RoleClass")) {
+                    	 	OWLObjectComplementOf negatedCandidate = df.getOWLObjectComplementOf(concept);
+//                    	 	/**
+//                    	 	 * @Hua: according to the paper, we need to test the disjointness
+//                    	 	 * However, this will filter out all the dummy concepts directly
+//                    	 	 */
+//                    	 	if(!isDisjoint(negatedCandidate, OWL_THING))
+                    	 		botAMLRoles.add(negatedCandidate);
+                     }
+                 }
+     		}       
+		}
+		for(OWLClassExpression concept : botConcepts) {
+			for(OWLAnnotation ap : reasoner.getAnnotations(concept)) {
+     			if (ap.getValue() instanceof OWLLiteral) {
+                     OWLLiteral val = (OWLLiteral) ap.getValue();                        
+                     if (val.getLiteral().equals("InterfaceClass")) {
+                    	 	OWLObjectComplementOf negatedCandidate = df.getOWLObjectComplementOf(concept);
+//                    	 	/**
+//                    	 	 * @Hua: according to the paper, we need to test the disjointness
+//                    	 	 * However, this will filter out all the dummy concepts directly
+//                    	 	 */
+//                    	 	if(!isDisjoint(negatedCandidate, OWL_THING))
+                    	 		botAMLInterfaces.add(negatedCandidate);
+                     }
+                 }
+     		}       
+		}
+		
+		initialized = true;		
 	}
 
-	protected void isFinal() {
+	private void isFinal() {
 		if (initialized) throw new IllegalStateException(this.getClass() + " already initialised in " + Thread.currentThread().getStackTrace()[2].getMethodName());
 	}
 
@@ -513,9 +581,11 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 	 */
 	@SuppressWarnings({"unchecked"})
 	public Set<OWLClassExpression> refine(OWLClassExpression description, int maxLength,
-			List<OWLClassExpression> knownRefinements, OWLClassExpression currDomain) {
-
-//		System.out.println("|- " + description + " " + currDomain + " " + maxLength);
+			List<OWLClassExpression> knownRefinements, OWLClassExpression currDomain) {	
+		
+//		if(!currDomain.isOWLThing())
+//			System.out.println("|- " + description + ", " + currDomain + ", " + maxLength);
+//		System.out.println("description [" + description + "] with domain [" + currDomain + "] " + maxLength);
 
 		// actions needing to be performed if this is the first time the
 		// current domain is used
@@ -532,6 +602,10 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 		Set<OWLClassExpression> tmp;
 
 		if(description.isOWLThing()) {
+			/**
+			 * @Hua: escape refinements of role and interfaces
+			 * 	- we can test with roles and interfaces which are not of type AutomationMLBaseRole/AutomationMLBaseInterface
+			 */
 			// extends top refinements if necessary
 			if(currDomain.isOWLThing()) {
 				if(maxLength>topRefinementsLength)
@@ -639,14 +713,41 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 			}
 
 		} else if (description instanceof OWLObjectSomeValuesFrom) {
+			
+//			if(maxLength > 6)
+//			{
+//				System.out.println();
+//			}
 			OWLObjectPropertyExpression role = ((OWLObjectSomeValuesFrom) description).getProperty();
 			OWLClassExpression filler = ((OWLObjectSomeValuesFrom) description).getFiller();
 
-			OWLClassExpression domain = role.isAnonymous() ? opDomains.get(role.getNamedProperty()) : opRanges.get(role);
+//			System.out.println("refining: [" + description + "] with filler [" + filler + "]");
+			/**
+			 * @Hua: extend object property refinements
+			 *   - if filler is thing:
+			 *   	- if role = hasIE: use role class to refine instead of checking range
+			 *   	- if role = hasEI: use interface class to refine instead of checking range
+			 *   - else: as now, since we have already chosen one role/interface and we want to specialize it
+			 * we can test with sucs with multiple IEs of specific role classes: hasIE.Robot and hasIE.IO and hasIE.XX ....
+			 */		
 
-			// rule 1: EXISTS r.D => EXISTS r.E
-			tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, domain);
-
+			if(role.toString().equals("hasIE")) {				
+				tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, amlIE);
+//				System.out.println("refining " + description + "with role: " + role + "and domain IE");
+			}
+			else if(role.toString().equals("hasEI")) {				
+				tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, amlEI);
+//				System.out.println("refining " + description + "with role: " + role + "and domain EI");
+			}
+			else if(role.toString().equals("hasIL")) {				
+				tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, amlIL);		
+			}
+			else {
+				OWLClassExpression domain = role.isAnonymous() ? opDomains.get(role.getNamedProperty()) : opRanges.get(role);
+				// rule 1: EXISTS r.D => EXISTS r.E
+				tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, domain);	
+			}
+						
 			for(OWLClassExpression c : tmp){
 				refinements.add(df.getOWLObjectSomeValuesFrom(role, c));
 			}
@@ -785,6 +886,18 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 			}
 		}
 
+		/**
+		 * @Hua: add a refinement of top to the current one
+		 * This is actually part of the rule 3,4,5,6,8 in the PhD paper
+		 * That is also way, that the rule 7 does not append a refinement to a intersection
+		 * since it is done for each individual part of the intersection in other cases
+		 * It is thus at the end of the refine method, because lots of other rules need this step
+		 * So to avoid duplicate code, it makes a condition here and do this for all
+		 * We additionally want check if the currDomain is EI or IL, 
+		 * for which we do not want any further intersections with atomic concepts or object properties  
+		 * but we still want data properties for EI and IL
+		 * In fact, topARefinementsCumulative of EI and IL does not have object properties, but still have atomic concepts
+		 */
 		// if a refinement is not Bottom, Top, ALL r.Bottom a refinement of top can be appended
 		if(!description.isOWLThing() && !description.isOWLNothing()
 				&& !(description instanceof OWLObjectAllValuesFrom && ((OWLObjectAllValuesFrom)description).getFiller().isOWLNothing())) {
@@ -798,13 +911,43 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 			} else if(topRefLength > topARefinementsLength.get(currDomain))
 				computeTopRefinements(topRefLength, currDomain);
 
+			/**
+			 * topRefLength is the allowed length of a refinement of THING 
+			 * that is going to be appended
+			 */
 			if(topRefLength>0) {
 				Set<OWLClassExpression> topRefs;
 				if(currDomain.isOWLThing())
 					topRefs = topRefinementsCumulative.get(topRefLength);
-				else
-					topRefs = topARefinementsCumulative.get(currDomain).get(topRefLength);
+				else {
+					/**
+					 * For object properties, it can not be refined with concepts anymore
+					 * since no AML IE/EI/IL would be referenced to two concepts simultaneously
+					 * So we do not have things like: hasIE.(A and (B or C or ....))
+					 * but we can have: hasIE.(A and (hasIE or hasEI ...))
+					 */
+					if(currDomain.equals(amlIE) || currDomain.equals(amlEI) || currDomain.equals(amlIL)) {
+						topRefs = new TreeSet<OWLClassExpression>();
+						for(OWLClassExpression topRef : topARefinementsCumulative.get(currDomain).get(topRefLength)) {									
+							boolean anonymous = true;
+							for(OWLClassExpression part : topRef.asDisjunctSet()) {
+								if(!part.isAnonymous()) {
+									anonymous = false;
+									break;
+								}
+							}
+							if(anonymous) {
+//								System.out.println("topRef: " + topRef);																							
+								topRefs.add(topRef);
+							}
+						}
+					}else
+						topRefs = topARefinementsCumulative.get(currDomain).get(topRefLength);
+				}
 
+				/**
+				 * @Hua: this topRefs would contain things like AutomationMLBaseRole or AutomationMLBaseRole
+				 */
 				for(OWLClassExpression c : topRefs) {
 					// true if refinement should be skipped due to filters,
 					// false otherwise
@@ -832,7 +975,7 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 					// we only add \forall r.C to an intersection if there is
 					// already some existential restriction \exists r.C
 					if(useSomeOnly) {
-						skip = !isCombinable(description, c);
+						skip = !isCombinable(description, c);						
 					}
 
 					// check for double datatype properties
@@ -851,11 +994,25 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 					// this can avoid a lot of superfluous computation in the algorithm e.g.
 					// when A1 looks good, so many refinements of the form (A1 OR (A2 AND A3))
 					// are generated which are all equal to A1 due to disjointness of A2 and A3
+					/**
+					 * @Hua: if c is disjoint to the current description, e.g. a filler of hasIE
+					 * then, c will be ignored, i.e. not added as intersection to description
+					 * Only tested for named classes. For property expressions, e.g. description = hasIE some RC, 
+					 * then all topRefs are added
+					 */
 					if(disjointChecks && !c.isAnonymous() && !description.isAnonymous() && isDisjoint(description, c)) {
 						skip = true;
 //						System.out.println(c + " ignored when refining " + description);
 					}
+//					else
+//						skip = false;
+					
+//					System.out.println("description: " + description + ", c: " + c + " - " + skip);
 
+					/**
+					 * @Hua: Here we refine it with an intersection with one of the top refinements
+					 * For quantification it means here we apply the second rule in the PhD paper
+					 */
 					if(!skip) {
 						List<OWLClassExpression> operands = Lists.newArrayList(description, c);
 						Collections.sort(operands);
@@ -915,11 +1072,30 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 		Set<OWLClassExpression> refinements = new HashSet<>();
 
 		OWLObjectPropertyExpression role = ce.getProperty();
-		OWLClassExpression filler = ce.getFiller();
-		OWLClassExpression range = role.isAnonymous() ? opDomains.get(role.getNamedProperty()) : opRanges.get(role);
+		OWLClassExpression filler = ce.getFiller();		
 
+		/**
+		 * @Hua: extend the rule 1 
+		 */
+		Set<OWLClassExpression> tmp;
+		if(role.toString().equals("hasIE") ) {
+			tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, amlIE);			
+		}
+		else if(role.toString().equals("hasEI")) {
+			tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, amlEI);		
+		}
+		else if(role.toString().equals("hasIL")) {
+			tmp = refine(filler, maxLength-lengthMetric.objectSomeValuesLength-lengthMetric.objectProperyLength, null, amlIL);		
+		}
+		else {
+			// rule 1: ALL r.D => ALL r.E
+			OWLClassExpression range = role.isAnonymous() ? opDomains.get(role.getNamedProperty()) : opRanges.get(role);
+			tmp = refine(filler, maxLength-lengthMetric.objectAllValuesLength-lengthMetric.objectProperyLength, null, range);
+		}
+		
 		// rule 1: ALL r.D => ALL r.E
-		Set<OWLClassExpression> tmp = refine(filler, maxLength-lengthMetric.objectAllValuesLength-lengthMetric.objectProperyLength, null, range);
+//		OWLClassExpression range = role.isAnonymous() ? opDomains.get(role.getNamedProperty()) : opRanges.get(role);
+//		Set<OWLClassExpression> tmp = refine(filler, maxLength-lengthMetric.objectAllValuesLength-lengthMetric.objectProperyLength, null, range);
 
 		for(OWLClassExpression c : tmp) {
 			refinements.add(df.getOWLObjectAllValuesFrom(role, c));
@@ -1045,6 +1221,7 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 	 * Similarly, topARefinements will always be empty
 	 */
 	private void computeTopRefinements(int maxLength, OWLClassExpression domain) {
+//		System.out.println("computing refinements for top with length " + maxLength + " and domain " + domain);
 		long topComputationTimeStartNs = System.nanoTime();
 //		System.out.println("computing top refinements for " + domain + " up to length " + maxLength);
 
@@ -1188,15 +1365,14 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 		/**
 		 * @Hua: the first set of M_T has only the top level concepts 
 		 */
-		SortedSet<OWLClassExpression> m1 = classHierarchy.getSubClasses(df.getOWLThing(), true);
-		m.get(lengthMetric.classLength).addAll(m1);
+//		SortedSet<OWLClassExpression> m1 = classHierarchy.getSubClasses(df.getOWLThing(), true);
+//		m.get(lengthMetric.classLength).addAll(m1);
+		m.get(lengthMetric.classLength).addAll(topAMLRoles);
 
-		/**
-		 * @Hua: negated bottom concepts
-		 */
 		if(useNegation) {
 			int lc = lengthMetric.objectComplementLength + lengthMetric.classLength;
-			Set<OWLClassExpression> m2tmp = classHierarchy.getSuperClasses(df.getOWLNothing(), true);
+//			Set<OWLClassExpression> m2tmp = classHierarchy.getSuperClasses(df.getOWLNothing(), true);
+			Set<OWLClassExpression> m2tmp = botAMLRoles;
 			for(OWLClassExpression c : m2tmp) {
 				if(!c.isOWLThing()) {
 					m.get(lc).add(df.getOWLObjectComplementOf(c));
@@ -1354,50 +1530,127 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 		for(int i=1; i<=mMaxLength; i++) {
 			mA.get(nc).put(i, new TreeSet<>());
 		}
+		
+		/**
+		 * @Hua: extended top level concept
+		 */
+		if(nc.equals(amlIE)) {
+//			SortedSet<OWLClassExpression> m1 = getClassCandidatesRecursive(index, df.getOWLThing());
+			mA.get(nc).get(lengthMetric.classLength).addAll(topAMLRoles);
+		}
+		else if((nc.equals(amlEI) || nc.equals(amlIL))) {		
+			mA.get(nc).get(lengthMetric.classLength).addAll(topAMLInterfaces);
+		}
+		else {
+			/**
+			 * @Hua: original M_A for top level concepts
+			 */
+			// most general classes, which are not disjoint with nc and provide real refinement
+			SortedSet<OWLClassExpression> m1 = getClassCandidates(nc);
+			mA.get(nc).get(lengthMetric.classLength).addAll(m1);
+		}
+		
 
-		// most general classes, which are not disjoint with nc and provide real refinement
-		SortedSet<OWLClassExpression> m1 = getClassCandidates(nc);
-		mA.get(nc).get(lengthMetric.classLength).addAll(m1);
-
+		/**
+		 * @Hua: extended negated bottom concepts
+		 */
 		// most specific negated classes, which are not disjoint with nc
 		if(useNegation) {
 			SortedSet<OWLClassExpression> m2;
-			m2 = getNegClassCandidates(nc);
-			mA.get(nc).get(lengthMetric.classLength + lengthMetric.objectComplementLength).addAll(m2);
+//			/**
+//			 * Extend
+//			 */
+//			if(nc.toString().equals("IE")) {
+//				m2 = classHierarchy.getSuperClasses(df.getOWLNothing(), true);
+//				SortedSet<OWLClassExpression> botRoles = new TreeSet<OWLClassExpression>();
+//				for(OWLClassExpression concept : m2) {
+//					for(OWLAnnotation ap : reasoner.getAnnotations(concept)) {
+//	         			if (ap.getValue() instanceof OWLLiteral) {
+//	                         OWLLiteral val = (OWLLiteral) ap.getValue();                        
+//	                         if (val.getLiteral().equals("RoleClass")) {
+//	                        	 	OWLObjectComplementOf negatedCandidate = df.getOWLObjectComplementOf(concept);
+//	                        	 	botRoles.add(negatedCandidate);
+//	                         }
+//	                     }
+//	         		}       
+//				}
+//				mA.get(nc).get(lengthMetric.classLength + lengthMetric.objectComplementLength).addAll(botRoles);
+//			}
+//			else if(nc.toString().equals("EI") || nc.toString().equals("IL")) {
+//				m2 = classHierarchy.getSuperClasses(df.getOWLNothing(), true);
+//				SortedSet<OWLClassExpression> botInterfaces = new TreeSet<OWLClassExpression>();
+//				for(OWLClassExpression concept : m2) {
+//					for(OWLAnnotation ap : reasoner.getAnnotations(concept)) {
+//	         			if (ap.getValue() instanceof OWLLiteral) {
+//	                         OWLLiteral val = (OWLLiteral) ap.getValue();                        
+//	                         if (val.getLiteral().equals("InterfaceClass")) {
+//	                        	 	OWLObjectComplementOf negatedCandidate = df.getOWLObjectComplementOf(concept);
+//	                        	 	botInterfaces.add(negatedCandidate);
+//	                         }
+//	                     }
+//	         		}       
+//				}
+//				mA.get(nc).get(lengthMetric.classLength + lengthMetric.objectComplementLength).addAll(botInterfaces);
+//			}
+//			else {
+				/**
+				 * @Hua: original M_A for negated bottom concepts
+				 */
+				m2 = getNegClassCandidates(nc);
+				mA.get(nc).get(lengthMetric.classLength + lengthMetric.objectComplementLength).addAll(m2);		
+//			}			
 		}
 
-		// compute applicable properties
-		computeMg(nc);
+		/**
+		 * @Hua: The rest of M is same as M_T for IE, but different for EI/IL,
+		 * Still we will use Thing for data properties, but filter out EI/IL in object properties
+		 * 
+		 */
+		// compute applicable properties				
+		OWLClassExpression domain = nc;		
+		if(nc.toString().equals("IE") || nc.toString().equals("EI") || nc.toString().equals("IL")) {		
+			domain = df.getOWLThing();
+		}		
+				
+			
+//		computeMg(nc);
+		computeMg(domain);
 
 		// boolean datatypes, e.g. testPositive = true
 		if(useBooleanDatatypes) {
 			int lc = lengthMetric.dataHasValueLength + lengthMetric.dataProperyLength;
-			Set<OWLDataProperty> booleanDPs = mgbd.get(nc);
+//			Set<OWLDataProperty> booleanDPs = mgbd.get(nc);
+			Set<OWLDataProperty> booleanDPs = mgbd.get(domain);			
 			for (OWLDataProperty dp : booleanDPs) {
 				mA.get(nc).get(lc).add(df.getOWLDataHasValue(dp, df.getOWLLiteral(true)));
 				mA.get(nc).get(lc).add(df.getOWLDataHasValue(dp, df.getOWLLiteral(false)));
 			}
 		}
 
-		if(useExistsConstructor) {
+		// filter out EI and IL for obj. properties: they do not have nested structures
+		if(useExistsConstructor && !nc.equals(amlEI) && !nc.equals(amlIL)) {
 			int lc = lengthMetric.objectSomeValuesLength + lengthMetric.objectProperyLength + lengthMetric.classLength;
-			for(OWLObjectProperty r : mgr.get(nc)) {
+//			for(OWLObjectProperty r : mgr.get(nc)) {
+			for(OWLObjectProperty r : mgr.get(domain)) {
 				mA.get(nc).get(lc).add(df.getOWLObjectSomeValuesFrom(r, df.getOWLThing()));
 			}
 		}
 
-		if(useAllConstructor) {
+		// filter out EI and IL for obj. properties: they do not have nested structures
+		if(useAllConstructor && !nc.equals(amlEI) && !nc.equals(amlIL)) {
 			// we allow \forall r.\top here because otherwise the operator
 			// becomes too difficult to manage due to dependencies between
 			// M_A and M_A' where A'=ran(r)
 			int lc = lengthMetric.objectAllValuesLength + lengthMetric.objectProperyLength + lengthMetric.classLength;
-			for(OWLObjectProperty r : mgr.get(nc)) {
+//			for(OWLObjectProperty r : mgr.get(nc)) {
+			for(OWLObjectProperty r : mgr.get(domain)) {
 				mA.get(nc).get(lc).add(df.getOWLObjectAllValuesFrom(r, df.getOWLThing()));
 			}
 		}
 
 		if(useNumericDatatypes) {
-			Set<OWLDataProperty> numericDPs = mgNumeric.get(nc);
+//			Set<OWLDataProperty> numericDPs = mgNumeric.get(nc);
+			Set<OWLDataProperty> numericDPs = mgNumeric.get(domain);
 			int lc = lengthMetric.dataSomeValuesLength + lengthMetric.dataProperyLength + 1;
 
 			for(OWLDataProperty dp : numericDPs) {
@@ -1412,7 +1665,8 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 		}
 
 		if(useTimeDatatypes) {
-			Set<OWLDataProperty> dtDPs = mgDT.get(nc);
+//			Set<OWLDataProperty> dtDPs = mgDT.get(nc);
+			Set<OWLDataProperty> dtDPs = mgDT.get(domain);
 			int lc = lengthMetric.dataSomeValuesLength + lengthMetric.dataProperyLength + 1;
 
 			for(OWLDataProperty dp : dtDPs) {
@@ -1426,7 +1680,8 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 		}
 
 		if(useDataHasValueConstructor) {
-			Set<OWLDataProperty> stringDPs = mgsd.get(nc);
+//			Set<OWLDataProperty> stringDPs = mgsd.get(nc);
+			Set<OWLDataProperty> stringDPs = mgsd.get(domain);
 			int lc = lengthMetric.dataHasValueLength + lengthMetric.dataProperyLength;
 			for(OWLDataProperty dp : stringDPs) {
 				// loop over frequent values
@@ -1437,7 +1692,7 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 			}
 		}
 
-		if(useHasValueConstructor) {
+		if(useHasValueConstructor && !nc.equals(amlEI) && !nc.equals(amlIL)) {
 			int lc = lengthMetric.objectHasValueLength + lengthMetric.objectProperyLength;
 			int lc_i = lengthMetric.objectHasValueLength + lengthMetric.objectInverseLength;
 //
@@ -1446,7 +1701,8 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 //							.flatMap(p -> frequentValues.get(p).stream()
 //									.map(val -> df.getOWLObjectHasValue(p, val)))
 //							.collect(Collectors.toSet()));
-			for(OWLObjectProperty p : mgr.get(nc)) {
+//			for(OWLObjectProperty p : mgr.get(nc)) {
+			for(OWLObjectProperty p : mgr.get(domain)) {
 				Set<OWLIndividual> values = frequentValues.get(p);
 				values.forEach(val -> m.get(lc).add(df.getOWLObjectHasValue(p, val)));
 
@@ -1458,7 +1714,8 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 
 		if(useCardinalityRestrictions) {
 			int lc = lengthMetric.objectCardinalityLength + lengthMetric.objectProperyLength + lengthMetric.classLength;
-			for(OWLObjectProperty r : mgr.get(nc)) {
+//			for(OWLObjectProperty r : mgr.get(nc)) {
+			for(OWLObjectProperty r : mgr.get(domain)) {
 				int maxFillers = maxNrOfFillers.get(r);
 				// zero fillers: <= -1 r.C does not make sense
 				// one filler: <= 0 r.C is equivalent to NOT EXISTS r.C,
@@ -1474,7 +1731,8 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 
 		if(useHasSelf) {
 			int lc = lengthMetric.objectSomeValuesLength + lengthMetric.objectProperyLength + lengthMetric.objectHasSelfLength;
-			for(OWLObjectProperty p : mgr.get(nc)) {
+//			for(OWLObjectProperty p : mgr.get(nc)) {
+			for(OWLObjectProperty p : mgr.get(domain)) {
 				m.get(lc).add(df.getOWLObjectHasSelf(p));
 			}
 		}
@@ -1750,6 +2008,9 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 		return false;
 	}
 
+	/**
+	 * @Hua: changed to private for AML operator 
+	 */
 	private boolean isDisjoint(OWLClassExpression d1, OWLClassExpression d2) {
 		if(d1.isOWLThing() || d2.isOWLThing()) {
 			return false;
@@ -2090,4 +2351,5 @@ public class RhoDRDown extends RefinementOperatorAdapter implements Component, C
 
 		logger.debug("mMaxLength = " + mMaxLength);
 	}
+	
 }

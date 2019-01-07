@@ -18,6 +18,8 @@
  */
 package org.dllearner.core;
 
+import org.dllearner.accuracymethods.AccMethod;
+import org.dllearner.accuracymethods.AccMethodTwoValued;
 import org.dllearner.core.annotations.NoConfigOption;
 import org.dllearner.core.config.ConfigOption;
 import org.dllearner.learningproblems.ExampleLoader;
@@ -38,6 +40,17 @@ public abstract class AbstractClassExpressionLearningProblem<T extends Score>  e
 	protected OWLDataFactory dataFactory = new OWLDataFactoryImpl();
 	@ConfigOption(description = "load examples via class expression selector")
 	protected ExampleLoader exampleLoaderHelper = null;
+	
+	/**
+	 * @Hua: give access of the accuracy method to all learning problems
+	 * There is still a problem here
+	 * Currently, it only supports AccMethodTwoValued as implemented in AbstractCELA.java
+	 * We prob. want to support AccMethodThreeValued as well
+	 */
+	@ConfigOption(description = "Specifies, which method/function to use for computing accuracy. Available measues are \"PRED_ACC\" (predictive accuracy), \"FMEASURE\" (F measure), \"GEN_FMEASURE\" (generalised F-Measure according to Fanizzi and d'Amato).",
+			defaultValue = "PRED_ACC")
+	protected AccMethodTwoValued accuracyMethod;
+//	protected AccMethod accuracyMethod;
 
 	public AbstractClassExpressionLearningProblem(){
 
@@ -107,4 +120,22 @@ public abstract class AbstractClassExpressionLearningProblem<T extends Score>  e
 	public void setExampleLoaderHelper(ExampleLoader exampleLoaderHelper) {
 		this.exampleLoaderHelper = exampleLoaderHelper;
 	}
+	
+	public AccMethodTwoValued getAccuracyMethod() {
+	    return accuracyMethod;
+	}
+
+	@Autowired(required=false)
+	public void setAccuracyMethod(AccMethodTwoValued accuracyMethod) {
+	    this.accuracyMethod = accuracyMethod;
+	}
+	
+//	public AccMethod getAccuracyMethod() {
+//		return accuracyMethod;
+//	}
+
+//	@Autowired(required = false)
+//	public void setAccuracyMethod(AccMethod accuracyMethod) {
+//		this.accuracyMethod = accuracyMethod;
+//	}
 }

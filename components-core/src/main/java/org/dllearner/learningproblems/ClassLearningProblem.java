@@ -76,9 +76,9 @@ public class ClassLearningProblem extends AbstractClassExpressionLearningProblem
 	// specific variables for generalised F-measure
 	private TreeSet<OWLIndividual> negatedClassInstances;
 
-	@ConfigOption(description = "Specifies, which method/function to use for computing accuracy. Available measues are \"pred_acc\" (predictive accuracy), \"fmeasure\" (F measure), \"generalised_fmeasure\" (generalised F-Measure according to Fanizzi and d'Amato).",
-	              defaultValue = "PRED_ACC")
-	protected AccMethod accuracyMethod;
+//	@ConfigOption(description = "Specifies, which method/function to use for computing accuracy. Available measues are \"pred_acc\" (predictive accuracy), \"fmeasure\" (F measure), \"generalised_fmeasure\" (generalised F-Measure according to Fanizzi and d'Amato).",
+//	              defaultValue = "PRED_ACC")
+//	protected AccMethod accuracyMethod;
 
 	@ConfigOption(description = "whether to check for consistency of suggestions (when added to ontology)",
 	              required = false,
@@ -312,14 +312,14 @@ public class ClassLearningProblem extends AbstractClassExpressionLearningProblem
 		this.checkConsistency = checkConsistency;
 	}
 
-	public AccMethod getAccuracyMethod() {
-		return accuracyMethod;
-	}
-
-	@Autowired(required = false)
-	public void setAccuracyMethod(AccMethod accuracyMethod) {
-		this.accuracyMethod = accuracyMethod;
-	}
+//	public AccMethod getAccuracyMethod() {
+//		return accuracyMethod;
+//	}
+//
+//	@Autowired(required = false)
+//	public void setAccuracyMethod(AccMethod accuracyMethod) {
+//		this.accuracyMethod = accuracyMethod;
+//	}
 
 	public double getRecall(OWLClassExpression description) {
 		ReasoningUtils.CoverageCount[] cc = reasoningUtil.getCoverageCount(description, classInstancesSet);

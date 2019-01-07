@@ -33,6 +33,7 @@ public abstract class AbstractSearchTreeNode <T extends AbstractSearchTreeNode> 
 	protected Set< AbstractSearchTree<T> > trees = new HashSet<>();
 	protected T parent;
 	protected List<T> children = new LinkedList<>();
+	private int depth = 0; //depth of the node in a tree
 
 	@Override
 	public abstract OWLClassExpression getExpression();
@@ -44,6 +45,7 @@ public abstract class AbstractSearchTreeNode <T extends AbstractSearchTreeNode> 
 	public void addChild(T node) {
 		node.setParent(this);
 		children.add(node);
+		node.setDepth(this.depth+1);
 		node.notifyTrees(this.trees);
 	}
 	
@@ -101,5 +103,14 @@ public abstract class AbstractSearchTreeNode <T extends AbstractSearchTreeNode> 
 	@Override
 	public Collection<T> getChildren() {
 		return children;
+	}
+	
+	public void setDepth(int d) {
+		this.depth = d;
+	}
+
+
+	public int getDepth() {
+		return this.depth;
 	}
 }

@@ -340,14 +340,14 @@ public class ClassExpressionLearningProblem extends AbstractClassExpressionLearn
 		this.checkConsistency = checkConsistency;
 	}
 
-	public AccMethod getAccuracyMethod() {
-		return accuracyMethod;
-	}
+//	public AccMethod getAccuracyMethod() {
+//		return accuracyMethod;
+//	}
 
-	@Autowired(required = false)
-	public void setAccuracyMethod(AccMethod accuracyMethod) {
-		this.accuracyMethod = accuracyMethod;
-	}
+//	@Autowired(required = false)
+//	public void setAccuracyMethod(AccMethod accuracyMethod) {
+//		this.accuracyMethod = accuracyMethod;
+//	}
 
 	public double getRecall(OWLClassExpression description) {
 		ReasoningUtils.CoverageCount[] cc = reasoningUtil.getCoverageCount(description, classInstancesSet);

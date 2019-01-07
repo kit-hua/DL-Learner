@@ -1798,4 +1798,9 @@ public class ClosedWorldReasoner extends AbstractReasonerComponent {
 
     }
 
+	@Override
+	public Collection<OWLAnnotation> getAnnotations(OWLClassExpression concept) {		
+		return baseReasoner.getAnnotations(concept);
+	}
+
 }

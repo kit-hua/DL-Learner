@@ -54,9 +54,9 @@ public abstract class PosNegLP extends AbstractClassExpressionLearningProblem<Sc
     @ConfigOption(description = "Percent Per Length Unit", defaultValue = "0.05", required = false)
     private double percentPerLengthUnit = 0.05;
 
-	@ConfigOption(description = "Specifies, which method/function to use for computing accuracy. Available measues are \"PRED_ACC\" (predictive accuracy), \"FMEASURE\" (F measure), \"GEN_FMEASURE\" (generalised F-Measure according to Fanizzi and d'Amato).",
-			defaultValue = "PRED_ACC")
-	protected AccMethodTwoValued accuracyMethod;
+//	@ConfigOption(description = "Specifies, which method/function to use for computing accuracy. Available measues are \"PRED_ACC\" (predictive accuracy), \"FMEASURE\" (F measure), \"GEN_FMEASURE\" (generalised F-Measure according to Fanizzi and d'Amato).",
+//			defaultValue = "PRED_ACC")
+//	protected AccMethodTwoValued accuracyMethod;
 
     public PosNegLP(){
 
@@ -157,13 +157,13 @@ public abstract class PosNegLP extends AbstractClassExpressionLearningProblem<Sc
         this.useRetrievalForClassification = useRetrievalForClassification;
     }
 
-	public AccMethodTwoValued getAccuracyMethod() {
-	    return accuracyMethod;
-	}
-
-	@Autowired(required=false)
-	public void setAccuracyMethod(AccMethodTwoValued accuracyMethod) {
-	    this.accuracyMethod = accuracyMethod;
-	}
+//	public AccMethodTwoValued getAccuracyMethod() {
+//	    return accuracyMethod;
+//	}
+//
+//	@Autowired(required=false)
+//	public void setAccuracyMethod(AccMethodTwoValued accuracyMethod) {
+//	    this.accuracyMethod = accuracyMethod;
+//	}
 
 }

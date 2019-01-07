@@ -1646,4 +1646,24 @@ public abstract class AbstractReasonerComponent extends AbstractComponent implem
 	public void setUseInstanceChecks(boolean useInstanceChecks) {
 		this.useInstanceChecks = useInstanceChecks;
 	}
+	
+	/**
+	 * @Hua return the annotations of one owl concept
+	 * @param concept the OWL concept
+	 * @return list of OWL annotations
+	 */
+	public abstract Collection<OWLAnnotation> getAnnotations(OWLClassExpression concept);
+	
+	/**
+	 * @Hua: reset the timer
+	 */
+	public void resetTimer() {
+		this.otherReasoningTimeNs = 0;
+		this.overallReasoningTimeNs = 0;
+		this.reasoningDurationTmp = 0;
+		this.retrievalReasoningTimeNs = 0;
+		this.instanceCheckReasoningTimeNs = 0;
+		this.subsumptionReasoningTimeNs = 0;
+	}
+	
 }
