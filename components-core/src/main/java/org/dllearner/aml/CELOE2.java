@@ -88,6 +88,7 @@ public class CELOE2 extends CELOE{
 	protected boolean doPrint = false;
 	protected boolean verbose = false;
 	ExcelTable statistics;
+	protected boolean writeStatistics = true;
 
 	public CELOE2() {
 		super();
@@ -161,53 +162,6 @@ public class CELOE2 extends CELOE{
 
 		minimizer = new OWLClassExpressionMinimizer(dataFactory, reasoner);
 
-		/**
-		 * @Hua: parse the input for benchmark
-		 */
-
-		if(learningProblem.getAccuracyMethod() instanceof AccMethodFMeasure)
-			accName = "fm";
-		else if(learningProblem.getAccuracyMethod() instanceof AccMethodPredAcc)
-			accName = "pred";
-		else
-			accName = "accX";	
-
-
-		// operator
-		if(operator instanceof AMLOperator)
-			opName = "aml";
-		else if(operator instanceof RhoDRDown)
-			opName = "rho";
-		else
-			opName = "opX";
-
-		String ksFileName = "";
-		String ksDirName = "";
-		for (KnowledgeSource ks : reasoner.getSources()) {
-			if(ks.getClass().getSimpleName().contains("KBFile")) {
-				ksFileName = ((KBFile) ks).getFileName();
-				ksDirName = ((KBFile) ks).getBaseDir();
-			}
-			if(ks.getClass().getSimpleName().contains("OWLFile")) {
-				ksFileName = ((org.dllearner.kb.OWLFile) ks).getFileName();
-				ksDirName = ((org.dllearner.kb.OWLFile) ks).getBaseDir();
-			}				
-		}				
-
-		// parse test case
-		int lastSlash = projectPath.lastIndexOf("/");
-		projectName = projectPath.substring(lastSlash+1, projectPath.length());
-		caseName += "_" + accName + "_" + opName + "_" + ((OEHeuristicRuntime) heuristic).getExpansionPenaltyFactor();
-
-
-		// search file 
-		logBaseName = searchTreeFile + "/" + caseName;
-		treeFile = new File(logBaseName + ".tree");
-		if (treeFile.getParentFile() != null) {
-			treeFile.getParentFile().mkdirs();
-		}		
-		if(writeSearchTree)
-			Files.clearFile(treeFile);
 
 		// start at owl:Thing by default
 		startClass = OWLAPIUtils.classExpressionPropertyExpanderChecked(this.startClass, reasoner, dataFactory, this::computeStartClass, logger);
@@ -251,6 +205,60 @@ public class CELOE2 extends CELOE{
 
 		if (!((AbstractRefinementOperator) operator).isInitialized())
 			operator.init();
+		
+		/**
+		 * @Hua: parse the input for benchmark
+		 */
+
+		if(learningProblem.getAccuracyMethod() instanceof AccMethodFMeasure)
+			accName = "fm";
+		else if(learningProblem.getAccuracyMethod() instanceof AccMethodPredAcc)
+			accName = "pred";
+		else
+			accName = "accX";	
+
+		// operator
+		if(operator instanceof AMLOperator)
+			opName = "aml";
+		else if(operator instanceof RhoDRDown)
+			opName = "rho";
+		else {
+			opName = "opX";
+			writeStatistics = false;
+		}
+
+		String ksFileName = "";
+		String ksDirName = "";
+		for (KnowledgeSource ks : reasoner.getSources()) {
+			if(ks.getClass().getSimpleName().contains("KBFile")) {
+				ksFileName = ((KBFile) ks).getFileName();
+				ksDirName = ((KBFile) ks).getBaseDir();
+			}
+			if(ks.getClass().getSimpleName().contains("OWLFile")) {
+				ksFileName = ((org.dllearner.kb.OWLFile) ks).getFileName();
+				ksDirName = ((org.dllearner.kb.OWLFile) ks).getBaseDir();
+			}				
+		}				
+
+		// parse test case
+		int lastSlash = projectPath.lastIndexOf("/");
+		if(lastSlash != -1) {
+			projectName = projectPath.substring(lastSlash+1, projectPath.length());
+			caseName += "_" + accName + "_" + opName + "_" + ((OEHeuristicRuntime) heuristic).getExpansionPenaltyFactor();
+		}else
+			writeStatistics = false;
+
+		// search file
+		if(caseName != null && caseName != "") {
+			logBaseName = searchTreeFile + "/" + caseName;
+			treeFile = new File(logBaseName + ".tree");
+			if (treeFile.getParentFile() != null) {
+				treeFile.getParentFile().mkdirs();
+			}		
+			if(writeSearchTree)
+				Files.clearFile(treeFile);
+		}else
+			writeStatistics = false;
 
 		initialized = true;
 
@@ -412,17 +420,22 @@ public class CELOE2 extends CELOE{
 			bestEvaluatedDescriptions.add(bestDescription, bestAccuracy, learningProblem);
 		}
 
-		String stateFile = logBaseName + ".log";
 		String states = getStates(true);
-		try {
-			saveStates(stateFile, states);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}		
+		if(logBaseName != null && logBaseName != "") {
+			String stateFile = logBaseName + ".log";			
+			try {
+				saveStates(stateFile, states);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+				
 
-		System.out.println("writing " + projectName + "_" + opName + " to file: " + projectPath+"/statistics.xlsx"); 
-		saveStatistics(projectPath+"/statistics.xlsx", opName);
+		if(writeStatistics) {
+			System.out.println("writing " + projectName + "_" + opName + " to file: " + projectPath+"/statistics.xlsx"); 
+			saveStatistics(projectPath+"/statistics.xlsx", opName);
+		}
 
 		if(doPrint)
 			System.out.println(states);
@@ -818,6 +831,10 @@ public class CELOE2 extends CELOE{
 	@Override
 	public Object clone() throws CloneNotSupportedException {
 		return new CELOE2(this);
+	}
+	
+	public OWLClassExpression getBestDescription() {
+		return this.bestEvaluatedDescriptions.getBest().getDescription();
 	}
 
 	/**

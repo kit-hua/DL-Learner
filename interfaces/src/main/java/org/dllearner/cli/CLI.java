@@ -23,6 +23,8 @@ import org.apache.log4j.Level;
 import org.dllearner.algorithms.decisiontrees.dsttdt.DSTTDTClassifier;
 import org.dllearner.algorithms.decisiontrees.refinementoperators.DLTreesRefinementOperator;
 import org.dllearner.algorithms.decisiontrees.tdt.TDTClassifier;
+import org.dllearner.aml.CELOE2;
+import org.dllearner.aml.OWLCLassExpressionUtilsExt;
 import org.dllearner.configuration.IConfiguration;
 import org.dllearner.configuration.spring.ApplicationContextBuilder;
 import org.dllearner.configuration.spring.DefaultApplicationContextBuilder;
@@ -32,7 +34,9 @@ import org.dllearner.core.*;
 import org.dllearner.core.config.ConfigOption;
 import org.dllearner.learningproblems.PosNegLP;
 import org.dllearner.refinementoperators.RefinementOperator;
+import org.dllearner.utilities.owl.OWLClassExpressionUtils;
 import org.semanticweb.owlapi.model.OWLClass;
+import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +52,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 //import org.dllearner.algorithms.qtl.QTL2;
 
@@ -153,9 +158,14 @@ public class CLI extends CLIBase2 {
 					algorithm = entry.getValue();
 					logger.info("Running algorithm instance \"" + entry.getKey() + "\" (" + algorithm.getClass().getSimpleName() + ")");
 					algorithm.start();
+					
+					if(algorithm.getClass().getSimpleName().equals("CELOE2")) {
+//						OWLCLassExpressionUtilsExt.tokenizeRec(((CELOE2) algorithm).getBestDescription());						
+					}
 				}
 			}
     }
+    
 
 	/**
 	 * @return the lp
