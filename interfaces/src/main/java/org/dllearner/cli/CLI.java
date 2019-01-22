@@ -19,12 +19,15 @@
  */
 package org.dllearner.cli;
 
+import org.apache.jena.tdb.store.Hash;
 import org.apache.log4j.Level;
+import org.dllearner.algorithms.celoe.CELOE;
 import org.dllearner.algorithms.decisiontrees.dsttdt.DSTTDTClassifier;
 import org.dllearner.algorithms.decisiontrees.refinementoperators.DLTreesRefinementOperator;
 import org.dllearner.algorithms.decisiontrees.tdt.TDTClassifier;
+import org.dllearner.algorithms.ocel.OCEL;
 import org.dllearner.aml.CELOE2;
-import org.dllearner.aml.OWLCLassExpressionUtilsExt;
+import org.dllearner.aml.OWLTree;
 import org.dllearner.configuration.IConfiguration;
 import org.dllearner.configuration.spring.ApplicationContextBuilder;
 import org.dllearner.configuration.spring.DefaultApplicationContextBuilder;
@@ -49,6 +52,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -159,8 +163,19 @@ public class CLI extends CLIBase2 {
 					logger.info("Running algorithm instance \"" + entry.getKey() + "\" (" + algorithm.getClass().getSimpleName() + ")");
 					algorithm.start();
 					
+					Set<OWLTree> trees = new HashSet<OWLTree>();
 					if(algorithm.getClass().getSimpleName().equals("CELOE2")) {
-//						OWLCLassExpressionUtilsExt.tokenizeRec(((CELOE2) algorithm).getBestDescription());						
+						OWLTree tree = new OWLTree(((CELOE2) algorithm).getBestDescription());
+						trees = tree.expand();											
+					}
+					if(algorithm.getClass().getSimpleName().equals("OCEL")) {
+						OWLTree tree = new OWLTree(((OCEL) algorithm).getCurrentlyBestDescription());
+						trees = tree.expand();											
+					}
+					
+					int i = 1;
+					for(OWLTree tr : trees) {
+						System.out.println("\ntree " + (i++) + ": \n" + tr.toString());
 					}
 				}
 			}

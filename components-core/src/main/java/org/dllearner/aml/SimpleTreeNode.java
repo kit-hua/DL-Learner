@@ -7,6 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.dllearner.core.StringRenderer;
+import org.semanticweb.owlapi.io.OWLObjectRenderer;
+import org.semanticweb.owlapi.model.OWLClassExpression;
+import org.semanticweb.owlapi.model.OWLObject;
+
 /**
  * @author Yingbing Hua, yingbing.hua@kit.edu
  * A generic tree node class
@@ -15,24 +20,29 @@ public class SimpleTreeNode<T>{
 
     public T data;
     public SimpleTreeNode<T> parent;
-    public List<SimpleTreeNode<T>> children;
+    public List<SimpleTreeNode<T>> children = new ArrayList<SimpleTreeNode<T>>();
     private static AtomicInteger nextId = new AtomicInteger(0);
     protected int id;
     
     public SimpleTreeNode() {
+    		this.id = nextId.getAndIncrement();
+    		data = null;
     }
     
-    // copy constructor
+    /**
+     * copy constructor.
+     * It only copies the data from the give node, but not its descending tree structure
+     * @param other
+     */
     public SimpleTreeNode(SimpleTreeNode<T> other) {
     		this.data = other.data;
-    		this.id = other.id;
+    		this.id = other.id;    		
     }
 
     public SimpleTreeNode(T data) {
-        this.data = data;
-        this.children = new ArrayList<SimpleTreeNode<T>>();
+    		this();
+        this.data = data;        
         this.parent = null;
-        this.id = nextId.getAndIncrement();
     }
 
     public void addChild(T child) {
@@ -42,7 +52,6 @@ public class SimpleTreeNode<T>{
     }
     
     public void addChild(SimpleTreeNode child) {
-//        SimpleTreeNode<T> childNode = new SimpleTreeNode<T>(child);
         child.parent = this;
         this.children.add(child);
     }
@@ -175,6 +184,27 @@ public class SimpleTreeNode<T>{
 	    return 
 //	    		this.data.equals( ((SimpleTreeNode<?>) obj).data ) &&
 	    		this.id == ((SimpleTreeNode<?>) obj).id; 
+	}
+	
+	
+	/**
+	 * print the tree structure
+	 */
+	public String toString() {
+		
+		String s = "";
+		
+		s += this.data.toString();	
+
+		for (SimpleTreeNode<T> child : this.children) {
+			s += "\n";
+			for(int i = 0; i < child.getDepth(); i++)
+				s += "\t";
+			
+			s += child.toString();
+		}
+		
+		return s;
 	}
 	
 
