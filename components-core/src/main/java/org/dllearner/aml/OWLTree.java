@@ -261,7 +261,9 @@ public class OWLTree {
 		return trees;
 	}
 	
-
+	public String toString(){
+		return this.root.toString();
+	}
 	
 	public static void main(String[] args) {
 		OWLDataFactory dataFactory = new OWLDataFactoryImpl();

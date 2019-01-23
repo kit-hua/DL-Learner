@@ -139,6 +139,10 @@ public class CELOE2 extends CELOE{
 		setReplaceSearchTree(celoe2.replaceSearchTree);
 		setProjectPath(celoe2.projectPath);
 	}
+	
+	public CELOE2(AbstractClassExpressionLearningProblem problem, AbstractReasonerComponent reasoner) {
+		super(problem, reasoner);
+	}
 
 	@Override
 	public void init() throws ComponentInitException {
@@ -249,7 +253,7 @@ public class CELOE2 extends CELOE{
 			writeStatistics = false;
 
 		// search file
-		if(caseName != null && caseName != "") {
+		if(!writeStatistics && caseName != null && caseName != "") {
 			logBaseName = searchTreeFile + "/" + caseName;
 			treeFile = new File(logBaseName + ".tree");
 			if (treeFile.getParentFile() != null) {

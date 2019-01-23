@@ -7,11 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.dllearner.core.StringRenderer;
-import org.semanticweb.owlapi.io.OWLObjectRenderer;
-import org.semanticweb.owlapi.model.OWLClassExpression;
-import org.semanticweb.owlapi.model.OWLObject;
-
 /**
  * @author Yingbing Hua, yingbing.hua@kit.edu
  * A generic tree node class

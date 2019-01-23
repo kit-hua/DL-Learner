@@ -272,6 +272,7 @@
 
 	<build>
 		<finalName>dl-learner</finalName>
+		<pluginManagement>
 		<plugins>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -368,6 +369,7 @@
 				</configuration>
 			</plugin>
 		</plugins>
+		</pluginManagement>
 	</build>
 
 	<dependencies>
