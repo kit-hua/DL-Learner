@@ -19,6 +19,7 @@
 package org.dllearner.algorithms.celoe;
 
 import java.text.DecimalFormat;
+
 import java.util.Map;
 
 import org.dllearner.core.AbstractHeuristic;
@@ -28,6 +29,8 @@ import org.dllearner.utilities.datastructures.SearchTreeNode;
 import org.dllearner.utilities.owl.OWLAPIRenderers;
 import org.dllearner.utilities.owl.OWLClassExpressionUtils;
 import org.semanticweb.owlapi.model.OWLClassExpression;
+
+import java.io.Serializable;
 
 /**
  * A node in the search tree of the ontology engineering algorithm.
@@ -44,7 +47,7 @@ import org.semanticweb.owlapi.model.OWLClassExpression;
  * @author Jens Lehmann
  *
  */
-public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTreeNode {
+public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTreeNode, Serializable{
 
 	protected OWLClassExpression description;
 	

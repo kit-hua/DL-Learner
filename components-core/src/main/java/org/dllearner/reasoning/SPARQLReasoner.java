@@ -49,6 +49,7 @@ import org.dllearner.kb.OWLFile;
 import org.dllearner.kb.SparqlEndpointKS;
 import org.dllearner.kb.sparql.SPARQLQueryUtils;
 import org.dllearner.kb.sparql.SparqlEndpoint;
+import org.dllearner.ray.SerializedOWLObjectDuplicator;
 import org.dllearner.utilities.OWLAPIUtils;
 import org.dllearner.utilities.OwlApiJenaUtils;
 import org.dllearner.utilities.datastructures.SortedSetTuple;
@@ -130,6 +131,10 @@ public class SPARQLReasoner extends AbstractReasonerComponent implements SchemaR
 	protected OWLClassExpressionToSPARQLConverter converter = new OWLClassExpressionToSPARQLConverter();
 
 	private OWLDataFactory df = new OWLDataFactoryImpl();
+//	/**
+//	 * @Hua: serialization
+//	 */
+//	private SerializedOWLObjectDuplicator duplicator = new SerializedOWLObjectDuplicator(df);
 	private OWLObjectDuplicator duplicator = new OWLObjectDuplicator(df);
 
 	/**

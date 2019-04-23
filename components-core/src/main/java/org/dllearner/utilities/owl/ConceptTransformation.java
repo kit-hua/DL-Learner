@@ -21,6 +21,7 @@ package org.dllearner.utilities.owl;
 import com.google.common.collect.Sets;
 import org.dllearner.core.AbstractReasonerComponent;
 import org.dllearner.core.owl.NNF;
+import org.dllearner.ray.SerializedOWLObjectDuplicator;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.util.OWLObjectDuplicator;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
@@ -40,6 +41,10 @@ public class ConceptTransformation {
 	public static long shorteningTimeNs = 0;
 
 	private static final OWLDataFactory df = new OWLDataFactoryImpl();
+//	/**
+//	 * @Hua: serialization
+//	 */
+//	private static final SerializedOWLObjectDuplicator DUPLICATOR = new SerializedOWLObjectDuplicator(df);
 	private static final OWLObjectDuplicator DUPLICATOR = new OWLObjectDuplicator(df);
 	private static final OWLClassExpressionCleaner CLASS_EXPRESSION_CLEANER = new OWLClassExpressionCleaner(df);
 	

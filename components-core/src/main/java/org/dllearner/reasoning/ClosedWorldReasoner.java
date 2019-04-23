@@ -69,7 +69,7 @@ import java.util.stream.IntStream;
  *
  */
 @ComponentAnn(name = "closed world reasoner", shortName = "cwr", version = 0.9)
-public class ClosedWorldReasoner extends AbstractReasonerComponent {
+public class ClosedWorldReasoner extends AbstractReasonerComponent implements java.io.Serializable{
 
     private static Logger logger = LoggerFactory.getLogger(ClosedWorldReasoner.class);
 

@@ -30,6 +30,7 @@ import org.dllearner.core.ComponentAnn;
 import org.dllearner.core.Score;
 import org.dllearner.kb.SparqlEndpointKS;
 import org.dllearner.kb.sparql.SparqlEndpoint;
+import org.dllearner.ray.SerializedOWLObjectDuplicator;
 import org.dllearner.utilities.owl.OWLClassExpressionToSPARQLConverter;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.util.DefaultPrefixManager;
@@ -188,6 +189,10 @@ public class PatternBasedAxiomLearningAlgorithm extends AbstractAxiomLearningAlg
 			}
 			if(!skip){
 				// instantiate the pattern
+//				/**
+//				 * @Hua: serialization
+//				 */
+//				SerializedOWLObjectDuplicator duplicator = new SerializedOWLObjectDuplicator(entity2IRIMap, dataFactory);
 				OWLObjectDuplicator duplicator = new OWLObjectDuplicator(entity2IRIMap, dataFactory);
 				OWLAxiom patternInstantiation = duplicator.duplicateObject(pattern);
 				instantiations.add(patternInstantiation);

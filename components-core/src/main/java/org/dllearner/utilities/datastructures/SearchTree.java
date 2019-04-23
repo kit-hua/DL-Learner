@@ -23,7 +23,7 @@ import java.util.TreeSet;
 
 import org.dllearner.core.AbstractSearchTreeNode;
 
-public class SearchTree<T extends AbstractSearchTreeNode> extends AbstractSearchTree<T> {
+public class SearchTree<T extends AbstractSearchTreeNode> extends AbstractSearchTree<T> implements java.io.Serializable{
 
 	public SearchTree(Comparator<T> comparator) {
 		super(comparator);

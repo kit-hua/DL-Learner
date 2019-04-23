@@ -27,6 +27,7 @@ import org.dllearner.accuracymethods.AccMethodFMeasure;
 import org.dllearner.accuracymethods.AccMethodPredAcc;
 import org.dllearner.accuracymethods.AccMethodTwoValued;
 import org.dllearner.learningproblems.PosNegLP;
+import org.dllearner.ray.SerializedOWLObjectDuplicator;
 import org.dllearner.utilities.Helper;
 import org.dllearner.utilities.ReasoningUtils;
 import org.dllearner.utilities.datastructures.DescriptionSubsumptionTree;
@@ -113,6 +114,10 @@ public abstract class AbstractCELA extends AbstractComponent implements ClassExp
 	@ConfigOption(description="The reasoner variable to use for this learning problem")
 	protected AbstractReasonerComponent reasoner;
 
+//	/**
+//	 * @Hua: serialization
+//	 */
+//	protected SerializedOWLObjectDuplicator duplicator = new SerializedOWLObjectDuplicator(new OWLDataFactoryImpl());
 	protected OWLObjectDuplicator duplicator = new OWLObjectDuplicator(new OWLDataFactoryImpl());
 	
 	@ConfigOption(description="List of classes that are allowed")

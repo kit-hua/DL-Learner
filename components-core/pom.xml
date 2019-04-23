@@ -124,10 +124,41 @@
 
 	<build>
 		<plugins>
+			<!-- <plugin>
+		        <groupId>org.apache.maven.plugins</groupId>
+		        <artifactId>maven-dependency-plugin</artifactId>
+		        <executions>
+		          <execution>
+		            <id>copy-dependencies</id>
+		            <phase>package</phase>
+		            <goals>
+		              <goal>copy-dependencies</goal>
+		            </goals>
+		            <configuration>
+		              <outputDirectory>${basedir}/lib</outputDirectory>
+		              <overWriteReleases>false</overWriteReleases>
+		              <overWriteSnapshots>false</overWriteSnapshots>
+		              <overWriteIfNewer>true</overWriteIfNewer>
+		            </configuration>
+		          </execution>
+		        </executions>
+		      </plugin> -->
 			<!--Surefire - for JUnits -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
+				<!-- <configuration>
+		          <environmentVariables>
+		            <RAY_CONFIG>${basedir}/../ray.config.ini</RAY_CONFIG>
+		          </environmentVariables>
+		          <argLine>-ea
+		            -Djava.library.path=${basedir}/../../build/src/plasma:${basedir}/../../build/src/ray/raylet
+		            -noverify
+		            -DlogOutput=console
+		          </argLine>
+		          <testSourceDirectory>${basedir}/src/main/java/</testSourceDirectory>
+		          <testClassesDirectory>${project.build.directory}/classes/</testClassesDirectory>
+		        </configuration> -->
 				<!--<configuration>-->
 					<!--&lt;!&ndash; Uncomment this when the junits are independent of a runtime directory &ndash;&gt;-->
 					<!--&lt;!&ndash;<includes> &ndash;&gt;-->
@@ -589,5 +620,17 @@
 		    <artifactId>poi-ooxml</artifactId>
 		    <version>3.15</version>
 		</dependency>
+		
+<!-- 		 <dependency>
+	      <groupId>org.ray</groupId>
+	      <artifactId>ray-api</artifactId>
+	      <version>0.1-SNAPSHOT</version>
+	    </dependency>
+	    
+	    <dependency>
+	      <groupId>org.ray</groupId>
+	      <artifactId>ray-runtime</artifactId>
+	      <version>0.1-SNAPSHOT</version>
+	    </dependency> -->
     </dependencies>
 </project>

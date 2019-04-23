@@ -18,7 +18,7 @@
  */
 package org.dllearner.algorithms.celoe;
 
-import com.google.common.collect.Sets;
+//import com.google.common.collect.Sets;
 import com.jamonapi.Monitor;
 import com.jamonapi.MonitorFactory;
 
@@ -40,6 +40,11 @@ import org.dllearner.refinementoperators.*;
 import org.dllearner.utilities.*;
 import org.dllearner.utilities.datastructures.SearchTree;
 import org.dllearner.utilities.owl.*;
+//import org.ray.api.Ray;
+//import org.ray.api.RayActor;
+//import org.ray.api.RayObject;
+//import java.io.Serializable;
+//import org.ray.api.annotation.RayRemote;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.slf4j.Logger;
@@ -53,6 +58,7 @@ import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * The CELOE (Class Expression Learner for Ontology Engineering) algorithm.
@@ -62,6 +68,7 @@ import java.util.concurrent.TimeUnit;
  * @author Jens Lehmann
  *
  */
+//@RayRemote
 @SuppressWarnings("CloneDoesntCallSuperClone")
 @ComponentAnn(name="CELOE", shortName="celoe", version=1.0, description="CELOE is an adapted and extended version of the OCEL algorithm applied for the ontology engineering use case. See http://jens-lehmann.org/files/2011/celoe.pdf for reference.")
 public class CELOE extends AbstractCELA implements Cloneable{
@@ -121,7 +128,7 @@ public class CELOE extends AbstractCELA implements Cloneable{
 	// utility variables
 	
 	// statistical variables
-	protected int expressionTests = 0;
+	protected static int expressionTests = 0;
 	protected int minHorizExp = 0;
 	protected int maxHorizExp = 0;
 	protected long totalRuntimeNs = 0;
@@ -295,7 +302,11 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		} else if(learningProblem instanceof PosOnlyLP) {
 			examples = ((PosOnlyLP)learningProblem).getPositiveExamples();
 		} else if(learningProblem instanceof PosNegLP) {
-			examples = Sets.union(((PosNegLP)learningProblem).getPositiveExamples(),((PosNegLP)learningProblem).getNegativeExamples());
+			/**
+			 * @Hua: serailization problem
+			 */
+			examples = union(((PosNegLP)learningProblem).getPositiveExamples(),((PosNegLP)learningProblem).getNegativeExamples());
+//			examples = Sets.union(((PosNegLP)learningProblem).getPositiveExamples(),((PosNegLP)learningProblem).getNegativeExamples());
 		}
 		
 		// create a refinement operator and pass all configuration
@@ -317,6 +328,131 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		
 		initialized = true;
 	}
+	
+//	@Override
+//	public void start() {
+//		
+//		stop = false;
+//		isRunning = true;
+//		reset();
+//		nanoStartTime = System.nanoTime();
+//		
+//		currentHighestAccuracy = 0.0;
+//		OENode nextNode;
+//
+//		logger.info("start class:" + startClass);
+//		addNode(startClass, null);
+//		
+//		try {
+//			Ray.init();
+//			RayActor<CELOE> actor = Ray.createActor(CELOE::new);
+//			
+//			while (!terminationCriteriaSatisfied()) {
+//				showIfBetterSolutionsFound();
+//
+//				// chose best node according to heuristics
+//				nextNode = getNextNodeToExpand();
+//				int horizExp = nextNode.getHorizontalExpansion();
+//				
+//				// apply refinement operator
+//				TreeSet<OWLClassExpression> refinements = refineNode(nextNode);
+//				
+//				while(!refinements.isEmpty() && !terminationCriteriaSatisfied()) {
+//					
+//					if(refinements.size() > 10) {
+//						
+//						System.out.println("parallelizing for " + refinements.size());
+//						
+//						//@Hua: try to parallelize here
+//						// - for each refinement compute the accuracy
+//						// - justify too weak or not
+//						// - if not too weak, add node
+////						RayObject<Double> worker = Ray.call(CELOE::evaNode, , workerIter);
+//						
+//						int nrWorkers = 8;					
+//						// Create an iterator for the original set.
+//					    Iterator<OWLClassExpression> it = refinements.iterator();
+//
+//					    // Calculate the required number of elements for each set.
+//					    int each = refinements.size() / nrWorkers;
+//
+////					    Set<RayObject<Map<OWLClassExpression, Double>>> workers = new HashSet<RayObject<Map<OWLClassExpression,Double>>>();
+//					    Set<RayObject<Integer>> workers = new HashSet<RayObject<Integer>>();
+//					    for (int i = 0; i < nrWorkers; i++) {
+//					    		Set<OWLClassExpression> workerInput = new HashSet<OWLClassExpression>();
+//					        for (int j = 0; j < each && it.hasNext(); j++) {
+//					        		OWLClassExpression refinement = it.next();
+//					        		int length = OWLClassExpressionUtils.getLength(refinement);									
+//								// we ignore all refinements with lower length and too high depth
+//								// (this also avoids duplicate node children)
+//								if(length > horizExp && OWLClassExpressionUtils.getDepth(refinement) <= maxDepth) {
+//									workerInput.add(refinement);
+//								}					        		
+//					        }
+////					        RayObject<Map<OWLClassExpression, Double>> worker = Ray.call(CELOE::evaluate, actor, workerInput, nextNode);
+////					        workers.add(worker);
+//					       
+//					        if(!workerInput.isEmpty()) {
+//					        		System.out.println("worker input: " + workerInput.size());
+//					        		RayObject<Integer> worker = Ray.call(CELOE::addNodes, actor, workerInput, nextNode, learningProblem, noise);
+//					        		workers.add(worker);
+//					        }
+//					    }
+//					    
+//					    int added = 0;
+//					    for(RayObject<Integer> worker : workers) {
+//							added += worker.get();
+//						}
+//					    refinements.clear();
+//					    System.out.println(added + " nodes added!");
+//					}
+//					else {
+//						System.out.println("single core for " + refinements.size());
+//						// pick element from set
+//						OWLClassExpression refinement = refinements.pollFirst();
+//		
+//						// get length of class expression
+//						int length = OWLClassExpressionUtils.getLength(refinement);
+//						
+//						// we ignore all refinements with lower length and too high depth
+//						// (this also avoids duplicate node children)
+//						if(length > horizExp && OWLClassExpressionUtils.getDepth(refinement) <= maxDepth) {
+//				
+//							// add node to search tree
+//							addNode(refinement, nextNode);
+//						}
+//					}
+//				}
+//				
+//				showIfBetterSolutionsFound();
+//				
+//				// update the global min and max horizontal expansion values
+//				updateMinMaxHorizExp(nextNode);
+//				
+//				// write the search tree (if configured)
+//				if (writeSearchTree) {
+//					writeSearchTree(refinements);
+//				}
+//			}
+//			Ray.shutdown();
+//		}catch (Throwable t) {
+//			t.printStackTrace();
+//		} finally {
+//			Ray.shutdown();
+//		}
+//		
+//		if(singleSuggestionMode) {
+//			bestEvaluatedDescriptions.add(bestDescription, bestAccuracy, learningProblem);
+//		}
+//		
+//		// print some stats
+//		printAlgorithmRunStats();
+//		
+//		// print solution(s)
+//		logger.info("solutions:\n" + getSolutionString());
+//		
+//		isRunning = false;
+//	}
 	
 	@Override
 	public void start() {
@@ -351,6 +487,7 @@ public class CELOE extends AbstractCELA implements Cloneable{
 				// we ignore all refinements with lower length and too high depth
 				// (this also avoids duplicate node children)
 				if(length > horizExp && OWLClassExpressionUtils.getDepth(refinement) <= maxDepth) {
+		
 					// add node to search tree
 					addNode(refinement, nextNode);
 				}
@@ -506,6 +643,161 @@ public class CELOE extends AbstractCELA implements Cloneable{
 		searchTree.updateDone(node);
 		MonitorFactory.getTimeMonitor("refineNode").stop();
 		return refinements;
+	}	
+
+	protected Map<OWLClassExpression, Double> evaluate(Set<OWLClassExpression> descriptions, OENode parentNode) {
+		
+		Map<OWLClassExpression, Double> table = new HashMap<OWLClassExpression, Double>();
+		for(OWLClassExpression description : descriptions) {
+			// redundancy check (return if redundant)
+			boolean nonRedundant = descriptions.add(description);
+			if(!nonRedundant) {
+				continue;
+			}
+			
+			// check whether the class expression is allowed
+			if(!isDescriptionAllowed(description, parentNode)) {
+				continue;
+			}
+			
+			// quality of class expression (return if too weak)
+			double accuracy = learningProblem.getAccuracyOrTooWeak(description, noise);
+			
+			// issue a warning if accuracy is not between 0 and 1 or -1 (too weak)
+			if(accuracy > 1.0 || (accuracy < 0.0 && accuracy != -1)) {
+				throw new RuntimeException("Invalid accuracy value " + accuracy + " for class expression " + description +
+						". This could be caused by a bug in the heuristic measure and should be reported to the DL-Learner bug tracker.");
+			}
+			
+			expressionTests++;
+			
+			// return FALSE if 'too weak'
+			if(accuracy != -1) {
+				table.put(description, accuracy);
+			}
+		}
+		
+		return table;
+	}
+	
+	protected int addNodes(Set<OWLClassExpression> candidates, OENode parentNode, AbstractClassExpressionLearningProblem learningProblem, double noise) {
+		
+//		Map<OWLClassExpression, Double> table = new HashMap<OWLClassExpression, Double>();
+		int added = 0;
+		for(OWLClassExpression candidate : candidates) {
+			
+//			added+=description.toString().length();
+//			// redundancy check (return if redundant)
+
+//			boolean nonRedundant = descriptions.add(description);
+//			if(!nonRedundant) {
+//				System.out.println("redundant");
+//				continue;
+//			}
+//			
+//			// check whether the class expression is allowed
+//			if(!isDescriptionAllowed(description, parentNode)) {
+//				System.out.println("not allowed");
+//				continue;
+//			}
+//			
+			// quality of class expression (return if too weak)
+			double accuracy = learningProblem.getAccuracyOrTooWeak(candidate, noise);			
+			
+			// issue a warning if accuracy is not between 0 and 1 or -1 (too weak)
+			if(accuracy > 1.0 || (accuracy < 0.0 && accuracy != -1)) {
+				throw new RuntimeException("Invalid accuracy value " + accuracy + " for class expression " + candidate +
+						". This could be caused by a bug in the heuristic measure and should be reported to the DL-Learner bug tracker.");
+			}
+			
+			expressionTests++;
+			
+			// return FALSE if 'too weak'
+			if(accuracy != -1) {
+				System.out.println("adding description: " + candidate);
+				if(addNode(candidate, accuracy, parentNode))
+					added++;
+			}
+		}
+		return added;
+//		return table;
+	}
+	
+	/**
+	 * Add node to search tree if it is not too weak.
+	 * @return TRUE if node was added and FALSE otherwise
+	 */
+	protected boolean addNode(OWLClassExpression description, double accuracy, OENode parentNode) {
+		
+		OENode node = new OENode(description, accuracy);
+		searchTree.addNode(parentNode, node);
+		
+		// in some cases (e.g. mutation) fully evaluating even a single class expression is too expensive
+		// due to the high number of examples -- so we just stick to the approximate accuracy
+		if(singleSuggestionMode) {
+			if(accuracy > bestAccuracy) {
+				bestAccuracy = accuracy;
+				bestDescription = description;
+				logger.info("more accurate (" + dfPercent.format(bestAccuracy) + ") class expression found: " + descriptionToString(bestDescription)); // + getTemporaryString(bestDescription));
+			}
+			return true;
+		}
+		
+		// maybe add to best descriptions (method keeps set size fixed);
+		// we need to make sure that this does not get called more often than
+		// necessary since rewriting is expensive
+		boolean isCandidate = !bestEvaluatedDescriptions.isFull();
+		if(!isCandidate) {
+			EvaluatedDescription<? extends Score> worst = bestEvaluatedDescriptions.getWorst();
+			double accThreshold = worst.getAccuracy();
+			isCandidate =
+				(accuracy > accThreshold ||
+				(accuracy >= accThreshold && OWLClassExpressionUtils.getLength(description) < worst.getDescriptionLength()));
+		}
+		
+		if(isCandidate) {
+			OWLClassExpression niceDescription = rewrite(node.getExpression());
+
+			if(niceDescription.equals(classToDescribe)) {
+				return false;
+			}
+			
+			if(!isDescriptionAllowed(niceDescription, node)) {
+				return false;
+			}
+			
+			// another test: none of the other suggested descriptions should be
+			// a subdescription of this one unless accuracy is different
+			// => comment: on the one hand, this appears to be too strict, because once A is a solution then everything containing
+			// A is not a candidate; on the other hand this suppresses many meaningless extensions of A
+			boolean shorterDescriptionExists = false;
+			if(forceMutualDifference) {
+				for(EvaluatedDescription<? extends Score> ed : bestEvaluatedDescriptions.getSet()) {
+					if(Math.abs(ed.getAccuracy()-accuracy) <= 0.00001 && ConceptTransformation.isSubdescription(niceDescription, ed.getDescription())) {
+//						System.out.println("shorter: " + ed.getDescription());
+						shorterDescriptionExists = true;
+						break;
+					}
+				}
+			}
+			
+//			System.out.println("shorter description? " + shorterDescriptionExists + " nice: " + niceDescription);
+			
+			if(!shorterDescriptionExists) {
+				if(!filterFollowsFromKB || !((ClassLearningProblem)learningProblem).followsFromKB(niceDescription)) {
+//					System.out.println(node + "->" + niceDescription);
+					bestEvaluatedDescriptions.add(niceDescription, accuracy, learningProblem);
+//					System.out.println("acc: " + accuracy);
+//					System.out.println(bestEvaluatedDescriptions);
+				}
+			}
+			
+//			bestEvaluatedDescriptions.add(node.getDescription(), accuracy, learningProblem);
+			
+//			System.out.println(bestEvaluatedDescriptions.getSet().size());
+		}
+		
+		return true;
 	}
 	
 	/**
@@ -668,7 +960,11 @@ public class CELOE extends AbstractCELA implements Cloneable{
 				boolean fillerFound = false;
 				if(reasoner instanceof SPARQLReasoner) {
 					SortedSet<OWLIndividual> individuals = reasoner.getIndividuals(existentialContext);
-					fillerFound = !Sets.intersection(individuals, examples).isEmpty();
+					/**
+					 * @Hua: serialization problem
+					 */
+//					fillerFound = !Sets.intersection(individuals, examples).isEmpty();
+					fillerFound = !intersection(individuals, examples).isEmpty();
 				} else {
 					for(OWLIndividual instance : examples) {
 						if(reasoner.hasType(existentialContext, instance)) {
@@ -1108,6 +1404,25 @@ public class CELOE extends AbstractCELA implements Cloneable{
 	public Object clone() throws CloneNotSupportedException {
 		return new CELOE(this);
 	}
+	
+	private <T> Set<T> intersection (Set<T> one, Set<T> other){
+		Set<T> cp = one.stream().collect(Collectors.toSet());
+		cp.retainAll(other);
+		return cp;
+	}
+	
+	private <T> Set<T> union (Set<T> one, Set<T> other){
+		Set<T> cp = one.stream().collect(Collectors.toSet());
+		cp.addAll(other);
+		return cp;
+	}
+	
+	private <T> Set<T> difference (Set<T> one, Set<T> other){
+		Set<T> cp = one.stream().collect(Collectors.toSet());
+		cp.removeAll(other);
+		return cp;
+	}
+
 
 	public static void main(String[] args) throws Exception{
 //		File file = new File("../examples/swore/swore.rdf");

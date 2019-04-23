@@ -41,7 +41,7 @@ import java.util.SortedSet;
  * 
  */
 @ComponentAnn(name = "PosNegLPStandard", shortName = "posNegStandard", version = 0.8)
-public class PosNegLPStandard extends PosNegLP implements Cloneable{
+public class PosNegLPStandard extends PosNegLP implements Cloneable, java.io.Serializable{
 	
 
     public PosNegLPStandard() {

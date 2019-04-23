@@ -18,6 +18,7 @@
  */
 package org.dllearner.utilities.owl;
 
+import org.dllearner.ray.SerializedOWLObjectDuplicator;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.util.MaximumModalDepthFinder;
@@ -34,6 +35,10 @@ import java.util.Set;
 public class OWLClassExpressionUtils {
 	
 	private static OWLDataFactory dataFactory = new OWLDataFactoryImpl();
+//	/**
+//	 * @Hua: serialization
+//	 */
+//	private static final SerializedOWLObjectDuplicator duplicator = new SerializedOWLObjectDuplicator(dataFactory);
 	private static OWLObjectDuplicator duplicator = new OWLObjectDuplicator(dataFactory);
 	private static final OWLClassExpressionLengthCalculator LENGTH_CALCULATOR= new OWLClassExpressionLengthCalculator();
 	private static final MaximumModalDepthFinder DEPTH_FINDER = new MaximumModalDepthFinder();

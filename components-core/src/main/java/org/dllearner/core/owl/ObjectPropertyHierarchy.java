@@ -34,7 +34,7 @@ import uk.ac.manchester.cs.owl.owlapi.OWLObjectPropertyImpl;
  * @author Jens Lehmann
  *
  */
-public class ObjectPropertyHierarchy extends AbstractHierarchy<OWLObjectProperty>{
+public class ObjectPropertyHierarchy extends AbstractHierarchy<OWLObjectProperty> implements java.io.Serializable{
 	
 	private static final OWLObjectProperty OWL_TOP_OBJECT_PROPERTY = new OWLObjectPropertyImpl(
 			OWLRDFVocabulary.OWL_TOP_OBJECT_PROPERTY.getIRI());

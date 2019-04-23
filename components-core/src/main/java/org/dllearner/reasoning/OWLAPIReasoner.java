@@ -66,7 +66,7 @@ import java.util.*;
  * @author Lorenz Buehmann
  */
 @ComponentAnn(name = "OWL API Reasoner", shortName = "oar", version = 0.8)
-public class OWLAPIReasoner extends AbstractReasonerComponent {
+public class OWLAPIReasoner extends AbstractReasonerComponent implements java.io.Serializable{
 
     private OWLReasoner reasoner;
     private OWLOntologyManager manager;

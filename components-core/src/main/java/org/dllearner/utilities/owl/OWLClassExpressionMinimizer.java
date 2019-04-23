@@ -21,6 +21,7 @@ package org.dllearner.utilities.owl;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.dllearner.core.AbstractReasonerComponent;
+import org.dllearner.ray.SerializedOWLObjectDuplicator;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.util.OWLObjectDuplicator;
 
@@ -31,10 +32,14 @@ import java.util.Map.Entry;
  * @author Lorenz Buehmann
  *
  */
-public class OWLClassExpressionMinimizer implements OWLClassExpressionVisitorEx<OWLClassExpression>{
+public class OWLClassExpressionMinimizer implements OWLClassExpressionVisitorEx<OWLClassExpression>, java.io.Serializable{
 	
 	private OWLDataFactory df;
 	private AbstractReasonerComponent reasoner;
+//	/**
+//	 * @Hua: serialization
+//	 */
+//	SerializedOWLObjectDuplicator objectDuplicator;			
 	private OWLObjectDuplicator objectDuplicator;
 	
 	private boolean beautify = true;
@@ -46,6 +51,7 @@ public class OWLClassExpressionMinimizer implements OWLClassExpressionVisitorEx<
 		this.reasoner = reasoner;
 		
 		objectDuplicator = new OWLObjectDuplicator(dataFactory);
+//		objectDuplicator = new SerializedOWLObjectDuplicator(dataFactory);
 	}
 	
 	public OWLClassExpression minimize(OWLClassExpression ce){

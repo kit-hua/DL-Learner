@@ -36,7 +36,7 @@ import uk.ac.manchester.cs.owl.owlapi.OWLDataPropertyImpl;
  * @author Jens Lehmann
  *
  */
-public class DatatypePropertyHierarchy extends AbstractHierarchy<OWLDataProperty>{
+public class DatatypePropertyHierarchy extends AbstractHierarchy<OWLDataProperty> implements java.io.Serializable{
 
 	private static final OWLDataProperty OWL_TOP_DATA_PROPERTY = new OWLDataPropertyImpl(
 			OWLRDFVocabulary.OWL_TOP_DATA_PROPERTY.getIRI());

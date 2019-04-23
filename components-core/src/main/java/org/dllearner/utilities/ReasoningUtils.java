@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.dllearner.core.AbstractReasonerComponent;
 import org.dllearner.core.Component;
+//import org.dllearner.ray.SetOperations;
 import org.dllearner.accuracymethods.AccMethodApproximate;
 import org.dllearner.accuracymethods.AccMethodTwoValued;
 import org.dllearner.accuracymethods.AccMethodTwoValuedApproximate;
@@ -32,14 +33,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * Common utilities for using a reasoner in learning problems
  */
-public class ReasoningUtils implements Component {
+public class ReasoningUtils implements Component, java.io.Serializable{
 
 	final static Logger logger = LoggerFactory.getLogger(ReasoningUtils.class);
 
@@ -126,9 +129,16 @@ public class ReasoningUtils implements Component {
 
 					rv[i] = new Coverage();
 					rv[i].total = sets[i].size();
-
+					
 					rv[i].trueSet.addAll(trueSet);
+//					/**
+//					 * @Hua: cope with serialization
+//					 */
+//					rv[i].falseSet.addAll(SetOperations.difference(sets[i], trueSet));
 					rv[i].falseSet.addAll(Sets.difference(sets[i], trueSet));
+					
+					
+					
 
 					rv[i].trueCount = rv[i].trueSet.size();
 					rv[i].falseCount = rv[i].falseSet.size();
@@ -139,8 +149,15 @@ public class ReasoningUtils implements Component {
 					rv[i] = new Coverage();
 					rv[i].total = sets[i].size();
 
+//					/**
+//					 * @Hua: cope with serialization
+//					 */
+//					rv[i].trueSet.addAll(SetOperations.intersection(sets[i], individuals));
+//					rv[i].falseSet.addAll(SetOperations.difference(sets[i], individuals));
 					rv[i].trueSet.addAll(Sets.intersection(sets[i], individuals));
 					rv[i].falseSet.addAll(Sets.difference(sets[i], individuals));
+					
+				
 
 					rv[i].trueCount = rv[i].trueSet.size();
 					rv[i].falseCount = rv[i].falseSet.size();
@@ -215,8 +232,17 @@ public class ReasoningUtils implements Component {
 					rv[i] = new CoverageCount();
 					rv[i].total = sets[i].size();
 				
-					rv[i].trueCount  = Sets.intersection(sets[i], individuals).size();
-					rv[i].falseCount = Sets.difference(sets[i], individuals).size();
+//					rv[i].trueCount  = Sets.intersection(sets[i], individuals).size();
+//					rv[i].falseCount = Sets.difference(sets[i], individuals).size();
+					Set<OWLIndividual> cp1 = new HashSet<OWLIndividual>();
+					cp1.addAll(sets[i]);
+					cp1.retainAll(individuals);
+					rv[i].trueCount = cp1.size();
+					
+					Set<OWLIndividual> cp2 = new HashSet<OWLIndividual>();
+					cp2.addAll(sets[i]);
+					cp2.removeAll(individuals);
+					rv[i].falseCount = cp2.size();
 				}
 			}
 		} else {
@@ -261,7 +287,12 @@ public class ReasoningUtils implements Component {
 					SortedSet<OWLIndividual> falseSet = reasoner.hasType(falseConcept, sets[i]);
 					rv[i].trueSet.addAll(trueSet);
 					rv[i].falseSet.addAll(falseSet);
+//					/**
+//					 * @Hua: cope with serialization
+//					 */
+//					rv[i].unknownSet.addAll(SetOperations.difference(sets[i], SetOperations.union(trueSet, falseSet)));
 					rv[i].unknownSet.addAll(Sets.difference(sets[i], Sets.union(trueSet, falseSet)));
+					
 
 					rv[i].trueCount = rv[i].trueSet.size();
 					rv[i].falseCount = rv[i].falseSet.size();
@@ -274,6 +305,12 @@ public class ReasoningUtils implements Component {
 					rv[i] = new Coverage3();
 					rv[i].total = sets[i].size();
 
+//					/**
+//					 * @Hua: cope with serialization
+//					 */
+//					rv[i].trueSet.addAll(SetOperations.intersection(sets[i], trueIndividuals));
+//					rv[i].falseSet.addAll(SetOperations.intersection(sets[i], falseIndividuals));
+//					rv[i].unknownSet.addAll(SetOperations.difference(sets[i], SetOperations.union(rv[i].trueSet, rv[i].falseSet)));
 					rv[i].trueSet.addAll(Sets.intersection(sets[i], trueIndividuals));
 					rv[i].falseSet.addAll(Sets.intersection(sets[i], falseIndividuals));
 					rv[i].unknownSet.addAll(Sets.difference(sets[i], Sets.union(rv[i].trueSet, rv[i].falseSet)));
@@ -364,6 +401,10 @@ public class ReasoningUtils implements Component {
 	 * @return set (or hashset)
 	 */
 	protected <T> Set<T> makeSet(Collection<T> collection) {
+//		/**
+//		 * @Hua: cope with serialization
+//		 */
+//		return SetOperations.copy(collection);
 		return collection instanceof Set ? (Set)collection : ImmutableSet.copyOf(collection);
 	}
 

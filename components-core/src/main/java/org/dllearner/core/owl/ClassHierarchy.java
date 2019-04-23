@@ -41,7 +41,7 @@ import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
  * @author Jens Lehmann
  * 
  */
-public class ClassHierarchy extends AbstractHierarchy<OWLClassExpression> {
+public class ClassHierarchy extends AbstractHierarchy<OWLClassExpression> implements java.io.Serializable{
 
 	public static Logger logger = LoggerFactory.getLogger(ClassHierarchy.class);
 	
