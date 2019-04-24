@@ -18,6 +18,7 @@
  */
 package org.dllearner.learningproblems;
 
+import org.dllearner.accuracymethods.AccMethod;
 import org.dllearner.core.AbstractReasonerComponent;
 import org.dllearner.core.ComponentAnn;
 import org.dllearner.core.EvaluatedDescription;
@@ -613,6 +614,12 @@ public class FuzzyPosNegLPStandard extends FuzzyPosNegLP {
 				getPercentPerLengthUnit(),
 				posAsPos, posAsNeg, negAsPos, negAsNeg,
 				accuracy);
+	}
+
+	@Override
+	public AccMethod getAccuracyMethod() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }

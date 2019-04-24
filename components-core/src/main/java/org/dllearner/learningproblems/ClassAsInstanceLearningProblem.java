@@ -19,6 +19,8 @@
 package org.dllearner.learningproblems;
 
 import com.google.common.collect.Sets;
+
+import org.dllearner.accuracymethods.AccMethod;
 import org.dllearner.algorithms.celoe.CELOE;
 import org.dllearner.core.*;
 import org.dllearner.core.StringRenderer.Rendering;
@@ -301,6 +303,12 @@ public class ClassAsInstanceLearningProblem extends AbstractClassExpressionLearn
 		
 		alg.start();
 		
+	}
+
+	@Override
+	public AccMethod getAccuracyMethod() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

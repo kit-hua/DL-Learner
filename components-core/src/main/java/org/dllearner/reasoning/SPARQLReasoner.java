@@ -2397,4 +2397,10 @@ public class SPARQLReasoner extends AbstractReasonerComponent implements SchemaR
 	public void setPreferAsk(boolean preferAsk) {
 		this.preferAsk = preferAsk;
 	}
+	
+	@Override
+	public Collection<OWLAnnotation> getAnnotations(OWLClassExpression concept) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

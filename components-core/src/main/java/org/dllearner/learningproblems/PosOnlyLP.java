@@ -20,6 +20,7 @@ package org.dllearner.learningproblems;
 
 import com.google.common.collect.Sets;
 import org.apache.log4j.Logger;
+import org.dllearner.accuracymethods.AccMethod;
 import org.dllearner.core.*;
 import org.dllearner.core.config.ConfigOption;
 import org.semanticweb.owlapi.model.OWLClassExpression;
@@ -310,5 +311,11 @@ public class PosOnlyLP extends AbstractClassExpressionLearningProblem<ScorePosOn
 
 	public void setPositiveExamples(Set<OWLIndividual> positiveExamples) {
 		this.positiveExamples = new TreeSet<>(positiveExamples);
+	}
+
+	@Override
+	public AccMethod getAccuracyMethod() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

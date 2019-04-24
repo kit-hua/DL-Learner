@@ -18,6 +18,7 @@
  */
 package org.dllearner.core;
 
+import org.dllearner.accuracymethods.AccMethod;
 import org.dllearner.core.annotations.NoConfigOption;
 import org.dllearner.core.config.ConfigOption;
 import org.dllearner.learningproblems.ExampleLoader;
@@ -107,4 +108,9 @@ public abstract class AbstractClassExpressionLearningProblem<T extends Score>  e
 	public void setExampleLoaderHelper(ExampleLoader exampleLoaderHelper) {
 		this.exampleLoaderHelper = exampleLoaderHelper;
 	}
+	
+	/**
+	 * @Hua: get the accuracy method of the learning problem
+	 */
+	public abstract AccMethod getAccuracyMethod ();
 }
