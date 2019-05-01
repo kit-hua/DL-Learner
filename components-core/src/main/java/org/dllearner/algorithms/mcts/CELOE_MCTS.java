@@ -196,9 +196,9 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 	protected DatatypePropertyHierarchy datatypePropertyHierarchy;
 	
 	private String logFile = "";
-	private int heStep = 3;
+	private int heStep = 0;
 	private boolean heCorr = true;
-	private String pathPfx = "he3corr/";
+	private String pathPfx = "";
 
 
 	public CELOE_MCTS() {}
@@ -278,6 +278,15 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 		}
 		
 		minimizer = new OWLClassExpressionMinimizer(dataFactory, reasoner);
+		
+		if(heStep == 0 && heCorr)
+			pathPfx = "original";
+		
+		if(heStep != 0 && heCorr)
+			pathPfx = "he" + String.valueOf(heStep) + "corr";
+		
+		if(heStep != 0 && !heCorr)
+			pathPfx = "he" + String.valueOf(heStep);
 		
 		String exampleFileName = searchTreeFile.substring(searchTreeFile.lastIndexOf("/"));
 		String resultPath = searchTreeFile.substring(0, searchTreeFile.lastIndexOf("/"));
@@ -925,6 +934,30 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 		}
 	}
 	
+	private StringBuilder toTreeString(OENode node, int depth) {
+		StringBuilder treeString = new StringBuilder();
+		for (int i = 0; i < depth - 1; i++) {
+			treeString.append("  ");
+		}
+		if (depth != 0) {
+			treeString.append("|--> ");
+		}
+		//treeString.append(node.toString()).append("\n");
+		treeString.append(node.getDescription().toString());
+		treeString.append(" [acc:");
+		treeString.append(String.format("%.0f%%", 100*node.getAccuracy()));
+		treeString.append(", he:");
+		treeString.append(node.getHorizontalExpansion());
+		treeString.append(", celoe:");
+		treeString.append(heuristic.getNodeScore(node));
+		treeString.append("]\n");
+
+		for (OENode child : node.getChildren()) {
+			treeString.append(toTreeString(child, depth+1));
+		}
+		return treeString;
+	}
+	
 	protected void writeSearchTree(TreeSet<OWLClassExpression> refinements) {
 		StringBuilder treeString = new StringBuilder("best node: ").append(bestEvaluatedDescriptions.getBest()).append("\n");
 		if (refinements.size() > 1) {
@@ -933,7 +966,8 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 				treeString.append("   ").append(ref).append("\n");
 			}
 		}
-		treeString.append(TreeUtils.toTreeString(searchTree)).append("\n");
+//		treeString.append(TreeUtils.toTreeString(searchTree)).append("\n");
+		treeString.append(toTreeString(searchTree.getRoot(), 0)).append("\n");
 
 		// replace or append
 		if (replaceSearchTree) {

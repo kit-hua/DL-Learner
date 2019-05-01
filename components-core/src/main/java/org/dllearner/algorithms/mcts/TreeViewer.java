@@ -28,12 +28,33 @@ public class TreeViewer extends JPanel {
 
         double celoe = 0;
         double uct = 0;
+        
+        Set<TreeNode> getAllNodes (){        	
+	    		Set<TreeNode> nodes = new HashSet<TreeViewer.TreeNode>();
+	    		nodes.add(this);
+	    		for(TreeNode child : children) {
+	    			nodes.addAll(child.getAllNodes());
+	    		}
+	    		
+	    		return nodes;
+        } 
+        
+        Set<String> getAllConcepts (){
+        		Set<TreeNode> nodes = getAllNodes();
+        		Set<String> concepts = new HashSet<String>();
+        		for(TreeNode node : nodes) {
+        			concepts.add(node.concept);
+        		}
+        		
+        		return concepts;
+        }
     }
 
     class Tree {
         TreeNode root;
         ArrayList<List<TreeNode>> layers = new ArrayList<>();
-        Map<String, TreeNode> conceptNodes;
+        double maxCeloeScore = Integer.MIN_VALUE;
+        Map<String, TreeNode> conceptNodes;        
     }
 
     private List<Tree> allTrees = new LinkedList<>();
@@ -44,8 +65,10 @@ public class TreeViewer extends JPanel {
     private static JLabel currentStepLabel;
     private static JLabel simulationLabel;
     
-    private static final String TreeDir = "/Users/aris/Documents/repositories/ipr/aml/aml_learning/benchmarks/";
-    private static final String LogDir = "/Users/aris/Documents/repositories/ipr/aml/dl-learner/benchmarks/log";
+    private boolean showCeloe = false;
+    private boolean showUct = false;
+    
+    private static final String BenchmarkDir = "/Users/aris/Documents/repositories/ipr/aml/aml_learning/benchmarks/";
 
     private boolean showHeuristicValues = false;
 
@@ -90,7 +113,7 @@ public class TreeViewer extends JPanel {
 //            } else {
 //                fc.setCurrentDirectory(new File("/home/patrick/dllearner-mcts/log"));
 //            }
-            fc.setCurrentDirectory(new File(TreeDir));
+            fc.setCurrentDirectory(new File(BenchmarkDir));
             fc.showOpenDialog(frame);
             if (canvas.openTree(fc.getSelectedFile())) {
                 frame.setTitle("DL-Learner Tree Viewer: " + fc.getSelectedFile().getPath());
@@ -112,7 +135,7 @@ public class TreeViewer extends JPanel {
 //            } else {
 //                fc.setCurrentDirectory(new File("/home/patrick/dllearner-mcts/log"));
 //            }
-            fc.setCurrentDirectory(new File(LogDir));
+            fc.setCurrentDirectory(new File(BenchmarkDir));
             fc.showOpenDialog(frame);
             if (canvas.openLog(fc.getSelectedFile())) {
                 frame.setTitle("DL-Learner Tree Viewer: " + fc.getSelectedFile().getPath());
@@ -339,6 +362,7 @@ public class TreeViewer extends JPanel {
                     continue;
                 }
 
+                /* Finish the current tree (there is always a blank line between trees) */
                 if (line.equals("")) {
                     // Tree finished
                     allTrees.add(currentTree);
@@ -350,10 +374,13 @@ public class TreeViewer extends JPanel {
                     continue;
                 }
 
+                /* If this line does not represent a node, then skip it.
+                 * (If it's a node, it always has an accuracy) */
                 if (!line.contains("acc")) {
                     continue;
                 }
 
+                /* Get the current node's description (concept) */
                 int arrowIndex = line.indexOf("|-->");
                 int level;
                 String concept;
@@ -366,21 +393,27 @@ public class TreeViewer extends JPanel {
                 }
                 concept = concept.trim();
 
+                /* Get accuracy and expansion properties of current node */
                 float accuracy = Float.parseFloat(line.substring(line.indexOf("acc:")+4, line.indexOf("%, he:")))/100;
                 int expansion = Integer.parseInt(line.substring(line.indexOf("he:")+3, line.indexOf(", c")));
 
+                /* Get CELOE score if given */
+                String celoe_string = getNodeProperty(line, "celoe");
+                showCeloe = (celoe_string != null);
                 double celoe = 0;
-                double uct = 0;
-                if (line.contains("celoe:")) {
-                    celoe = Double.parseDouble(line.substring(line.indexOf("celoe:") + 6, line.indexOf(", uct")));
-                    uct = Double.parseDouble(line.substring(line.indexOf("uct:") + 4, line.length()-1));
-                    showHeuristicValues = true;
-                } else {
-                    showHeuristicValues = false;
+                if (showCeloe) {
+                    celoe = Double.parseDouble(celoe_string);
                 }
 
-                //System.out.println(level + ":\t" + concept + "\t"+accuracy+"\t\t" +line);
+                /* Give UCT score if given */
+                String uct_string = getNodeProperty(line, "uct");
+                showUct = uct_string != null;
+                double uct = 0;
+                if (showUct) {
+                    uct = Double.parseDouble(uct_string);
+                }
 
+                /* Create tree node */
                 TreeNode currentNode = new TreeNode();
                 currentNode.concept = concept;
                 currentNode.accuracy = accuracy;
@@ -389,22 +422,30 @@ public class TreeViewer extends JPanel {
                 currentNode.celoe = celoe;
                 currentNode.uct = uct;
 
+                /* The last node that was added to the current layer of the tree is this node.
+                 * This is relevant when adding children in the next line. */
                 lastNodeOnLevel.put(level, currentNode);
 
+                /* Create new tree if this is the first node. */
                 if (currentTree == null) {
                     currentTree = new Tree();
                     currentTree.root = currentNode;
                     currentTree.conceptNodes = new HashMap<>();
                     treeAdded = false;
                 } else {
+                    /* Add this node as a child to the last node of the level above */
                     lastNodeOnLevel.get(level-1).children.add(currentNode);
                 }
                 currentTree.conceptNodes.put(currentNode.concept, currentNode);
 
+                /* Add this node to the layers of the current tree. Allocate new list if necessary. */
                 if (currentTree.layers.size() <= level) {
                     currentTree.layers.add(new LinkedList<>());
                 }
                 currentTree.layers.get(level).add(currentNode);
+                if (currentNode.celoe > currentTree.maxCeloeScore) {
+                    currentTree.maxCeloeScore = currentNode.celoe;
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -421,6 +462,23 @@ public class TreeViewer extends JPanel {
         return true;
     }
 
+    private String getNodeProperty(String nodeLine, String propertyName) {
+        int startIndex = nodeLine.indexOf(propertyName+":");
+        if (startIndex == -1) {
+            return null;
+        }
+        startIndex += propertyName.length() + 1;
+        int endIndex = nodeLine.indexOf(",", startIndex);
+        if (endIndex == -1) {
+            endIndex = nodeLine.indexOf("]", startIndex);
+        }
+        if (endIndex == -1) {
+            return null;
+        }
+        String s = nodeLine.substring(startIndex, endIndex);
+        return s;
+    }
+
 
     private void showTree(int i) {
         if (allTrees.size() <= i) return;
@@ -430,6 +488,17 @@ public class TreeViewer extends JPanel {
         removeAll();
 
         Tree tree = allTrees.get(i);
+        
+        TreeNode lastRoot = null;
+        Set<TreeNode> lastNodes = new HashSet<TreeViewer.TreeNode>();
+        Set<String> lastConcepts = new HashSet<String>();
+        if(i>1) {
+        		lastRoot = allTrees.get(i-1).root;
+//        		lastNodes = lastRoot.getAllNodes();
+        		lastConcepts = lastRoot.getAllConcepts();
+        }
+        
+        
         currentTreeIndex = i;
         currentTreeLabel.setText("Step " + (currentTreeIndex+1) + " / " + allTrees.size());
 
@@ -438,19 +507,20 @@ public class TreeViewer extends JPanel {
             maxConceptsPerLayer = Math.max(maxConceptsPerLayer, l.size());
         }
 
-        createNodeButton(tree.root, 5);
+        createNodeButton(tree.root, lastConcepts, 5);
 
         setPreferredSize(new Dimension(tree.root.maxChildX-15,80+(tree.layers.size()-1)*150));
 
         repaint();
     }
 
-    private void createNodeButton(TreeNode node, int x) {
+    private void createNodeButton(TreeNode node, Set<String> lastConcepts, int x) {
         node.maxChildX = 0;
         int xCounter = 0;
         int nextX = x;
+        
         for (TreeNode c : node.children) {
-            createNodeButton(c, nextX);
+            createNodeButton(c, lastConcepts, nextX);
             node.maxChildX = Math.max(node.maxChildX, c.maxChildX);
             nextX = node.maxChildX;
             xCounter += c.x;
@@ -466,16 +536,29 @@ public class TreeViewer extends JPanel {
         String buttonText = capString(node.concept, 30) + "\n"
                 + String.format("acc: %.0f%%",node.accuracy*100)
                 + ", he: " + node.horizontalExpansion;
-        if (showHeuristicValues) {
-            buttonText += "\nceloe: " + String.format("%.3f", node.celoe) + ", uct: " + String.format("%.3f", node.uct);
+        if (showCeloe) {
+            buttonText += "\nceloe: " + String.format("%.4f", node.celoe);
+        }
+        if (showUct) {
+            buttonText += ", uct: " + String.format("%.3f", node.uct);
         }
         JButton nodeButton = new JButton("<html><center>" + buttonText.replaceAll("\\n", "<br>") + "</center></html>");
         node.x = thisX;
         node.y = 10+node.level*150;
         nodeButton.setBounds(node.x, node.y, 200, 60);
         if (node.accuracy == 1) {
-            nodeButton.setBackground(Color.GREEN);
+            nodeButton.setForeground(Color.GREEN);
+            nodeButton.setOpaque(true);
+        } else if (node.celoe == allTrees.get(currentTreeIndex).maxCeloeScore) {
+            nodeButton.setForeground(Color.RED);
+            nodeButton.setOpaque(true);            
         }
+        
+        if(!lastConcepts.isEmpty() && !lastConcepts.contains(node.concept)) {
+        		nodeButton.setBackground(Color.GREEN);
+        		nodeButton.setOpaque(true);
+        }
+        
         nodeButton.addActionListener(e -> currentConceptLabel.setText(node.concept
                 + ", Accuracy: " + node.accuracy
                 + ", HE: " + node.horizontalExpansion
