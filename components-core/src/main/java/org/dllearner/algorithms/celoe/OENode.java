@@ -63,6 +63,15 @@ public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTree
 		this.horizontalExpansion = OWLClassExpressionUtils.getLength(description) - 1;
 	}
 	
+	public OENode(OWLClassExpression description, double accuracy, boolean modifyHe) {
+		this.description = description;
+		this.accuracy = accuracy;
+		if(modifyHe)
+			this.horizontalExpansion = OWLClassExpressionUtils.getLength(description) - 1;
+		else
+			this.horizontalExpansion = OWLClassExpressionUtils.getLength(description);
+	}	
+	
 //	public OENode(OENode parentNode, OWLClassExpression description, double accuracy) {
 //		this(description, accuracy);
 //		this.setParent(parentNode);
@@ -70,6 +79,7 @@ public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTree
 
 	public void incHorizontalExpansion() {
 		horizontalExpansion++;
+//		horizontalExpansion += 3;
 	}
 	
 	public boolean isRoot() {

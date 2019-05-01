@@ -52,6 +52,9 @@ import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -137,7 +140,7 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 	private boolean writeSearchTree = false;
 
 	@ConfigOption(defaultValue="log/searchTree.txt", description="file to use for the search tree")
-	private String searchTreeFile = "log/searchTree.txt";
+	private String searchTreeFile = "log/searchTree.txt";	
 
 	@ConfigOption(defaultValue="false", description="specifies whether to replace the search tree in the log file after each run or append the new search tree")
 	private boolean replaceSearchTree = false;
@@ -170,7 +173,7 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 	protected double maxDepth = 7;
 
 	@ConfigOption(defaultValue="false", description="algorithm will terminate immediately when a correct definition is found")
-	private boolean stopOnFirstDefinition = false;
+	private boolean stopOnFirstDefinition = true;
 
 	private int expressionTestCountLastImprovement;
 
@@ -191,6 +194,11 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 	protected ClassHierarchy classHierarchy;
 	protected ObjectPropertyHierarchy objectPropertyHierarchy;
 	protected DatatypePropertyHierarchy datatypePropertyHierarchy;
+	
+	private String logFile = "";
+	private int heStep = 3;
+	private boolean heCorr = true;
+	private String pathPfx = "he3corr/";
 
 
 	public CELOE_MCTS() {}
@@ -271,10 +279,20 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 		
 		minimizer = new OWLClassExpressionMinimizer(dataFactory, reasoner);
 		
-		if (writeSearchTree) {
-			File f = new File(searchTreeFile);
+		String exampleFileName = searchTreeFile.substring(searchTreeFile.lastIndexOf("/"));
+		String resultPath = searchTreeFile.substring(0, searchTreeFile.lastIndexOf("/"));
+		String exampleName = exampleFileName.substring(0, exampleFileName.lastIndexOf("."));
+		logFile =  resultPath + "/" + pathPfx + exampleName + ".log";
+		searchTreeFile = resultPath + "/" + pathPfx + exampleName + ".tree";
+		File log = new File(logFile);	
+		if (log.getParentFile() != null) {
+			log.getAbsoluteFile().getParentFile().mkdirs();
+		}
+		Files.clearFile(log);
+		if (writeSearchTree) {						
+			File f = new File(searchTreeFile);	
 			if (f.getParentFile() != null) {
-				f.getParentFile().mkdirs();
+				f.getAbsoluteFile().getParentFile().mkdirs();
 			}
 			Files.clearFile(f);
 		}
@@ -337,6 +355,12 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 		OENode nextNode;
 
 		logger.info("start class:" + startClass);
+		try {
+			saveLog(logFile, "start class:" + startClass);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		addNode(startClass, null);
 
 		int countIterations = 0;
@@ -392,8 +416,23 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 		System.out.println("Nodes in search tree: " + searchTree.size());
 		System.out.println("Expressions tested: " + expressionTests);
 		
+		
 		// print solution(s)
 		logger.info("solutions:\n" + getSolutionString());
+		
+		String s = "Iterations: " + countIterations + "\n";
+		s += "Times CELOE undecided: " + timesCeloeUndecided + "\n";
+		s += "Times CELOE decided: " + timesCeloeDecided + "\n";
+		s += "% CELOE undecided: "+ ((double)timesCeloeUndecided)/((double)timesCeloeUndecided+timesCeloeDecided) + "\n";
+		s += "Nodes in search tree: " + searchTree.size() + "\n";
+		s += "Expressions tested: " + expressionTests + "\n";
+		s += "solutions:\n" + getSolutionString();
+		try {
+			saveLog(logFile, s);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		isRunning = false;
 	}
@@ -557,9 +596,24 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 		// otherwise you may see rarely occurring but critical false ordering in the nodes set)
 		searchTree.updatePrepare(node);
 		int horizExp = node.getHorizontalExpansion();
-		TreeSet<OWLClassExpression> refinements = (TreeSet<OWLClassExpression>) operator.refine(node.getDescription(), horizExp+1);
-//		System.out.println("refinements: " + refinements);
-		node.incHorizontalExpansion();
+//		TreeSet<OWLClassExpression> refinements = (TreeSet<OWLClassExpression>) operator.refine(node.getDescription(), horizExp+heStep+heCorr);
+//		for(int i = 0; i < heStep; i++)
+//			node.incHorizontalExpansion();		
+		
+		TreeSet<OWLClassExpression> refinements = new TreeSet<OWLClassExpression>();
+		if(heCorr)
+			refinements = (TreeSet<OWLClassExpression>) operator.refine(node.getDescription(), horizExp+1+heStep);
+		else
+			refinements = (TreeSet<OWLClassExpression>) operator.refine(node.getDescription(), horizExp+heStep);
+		
+		if(heStep == 0)
+			node.incHorizontalExpansion();
+		else {
+			for(int i = 0; i < heStep; i++) {
+				node.incHorizontalExpansion();
+			}
+		}		
+		
 		node.setRefinementCount(refinements.size());
 //		System.out.println("refined node: " + node);
 		searchTree.updateDone(node);
@@ -609,7 +663,9 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 			return null;
 		}
 		
-		OENode node = new OENode(description, accuracy);
+//		OENode node = new OENode(description, accuracy);
+		
+		OENode node = new OENode(description, accuracy, heCorr);
 		searchTree.addNode(parentNode, node);
 		
 		// in some cases (e.g. mutation) fully evaluating even a single class expression is too expensive
@@ -825,10 +881,25 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 	protected void printAlgorithmRunStats() {
 		if (stop) {
 			logger.info("Algorithm stopped ("+expressionTests+" descriptions tested). " + searchTree.size() + " nodes in the search tree.\n");
+			String s = "Algorithm stopped ("+expressionTests+" descriptions tested). " + searchTree.size() + " nodes in the search tree.";
+			try {
+				saveLog(logFile, s);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		} else {
 			totalRuntimeNs = System.nanoTime()-nanoStartTime;
 			logger.info("Algorithm terminated successfully (time: " + Helper.prettyPrintNanoSeconds(totalRuntimeNs) + ", "+expressionTests+" descriptions tested, "  + searchTree.size() + " nodes in the search tree).\n");
             logger.info(reasoner.toString());
+            String s = "\nAlgorithm terminated successfully (time: " + Helper.prettyPrintNanoSeconds(totalRuntimeNs) + ", "+expressionTests+" descriptions tested, "  + searchTree.size() + " nodes in the search tree).\n";
+            	s += reasoner.toString();
+            try {
+				saveLog(logFile, s);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -845,6 +916,12 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 				runtimeVsBestScore.put(getCurrentRuntimeInMilliSeconds(), currentHighestAccuracy);
 			}
 			logger.info("more accurate (" + dfPercent.format(currentHighestAccuracy) + ") class expression found after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
+			try {
+				saveLog(logFile, "more accurate (" + dfPercent.format(currentHighestAccuracy) + ") class expression found after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -870,7 +947,7 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 		int newHorizExp = node.getHorizontalExpansion();
 		
 		// update maximum value
-		maxHorizExp = Math.max(maxHorizExp, newHorizExp);
+		maxHorizExp = Math.max(maxHorizExp, newHorizExp+heStep);
 		
 		// we just expanded a node with minimum horizontal expansion;
 		// we need to check whether it was the last one
@@ -1158,6 +1235,19 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 
 		return map;
 	}
+	
+	private void saveLog(String filename, String log) throws FileNotFoundException {
+		try
+		{
+			FileWriter fw = new FileWriter(filename,true); //the true will append the new data
+			fw.write(log+"\n");
+			fw.close();
+		}
+		catch(IOException ioe)
+		{
+			System.err.println("IOException: " + ioe.getMessage());
+		}
+	}
 
 	/* (non-Javadoc)
 			 * @see java.lang.Object#clone()
@@ -1167,74 +1257,74 @@ public class CELOE_MCTS extends AbstractCELA implements Cloneable{
 		return new CELOE_MCTS(this);
 	}
 
-	public static void main(String[] args) throws Exception{
-		File file = new File("../examples/swore/swore.rdf");
-		OWLClass classToDescribe = new OWLClassImpl(IRI.create("http://ns.softwiki.de/req/CustomerRequirement"));
-		
-		OWLOntology ontology = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(file);
-		
-		AbstractKnowledgeSource ks = new OWLAPIOntology(ontology);
-		ks.init();
-		
-		OWLAPIReasoner baseReasoner = new OWLAPIReasoner(ks);
-		baseReasoner.setReasonerImplementation(ReasonerImplementation.HERMIT);
-        baseReasoner.init();
-		ClosedWorldReasoner rc = new ClosedWorldReasoner(ks);
-		rc.setReasonerComponent(baseReasoner);
-		rc.init();
-		
-		ClassLearningProblem lp = new ClassLearningProblem(rc);
-//		lp.setEquivalence(false);
-		lp.setClassToDescribe(classToDescribe);
-		lp.init();
-		
-		RhoDRDown op = new RhoDRDown();
-		op.setReasoner(rc);
-		op.setUseNegation(false);
-		op.setUseHasValueConstructor(false);
-		op.setUseCardinalityRestrictions(true);
-		op.setUseExistsConstructor(true);
-		op.setUseAllConstructor(true);
-		op.init();
-		
-		
-		
-		//(male ⊓ (∀ hasChild.⊤)) ⊔ (∃ hasChild.(∃ hasChild.male))
-		OWLDataFactory df = new OWLDataFactoryImpl();
-		OWLClass male = df.getOWLClass(IRI.create("http://example.com/father#male"));
-		OWLClassExpression ce = df.getOWLObjectIntersectionOf(
-									df.getOWLObjectUnionOf(
-											male,
-											df.getOWLObjectIntersectionOf(
-													male, male),
-											df.getOWLObjectSomeValuesFrom(
-												df.getOWLObjectProperty(IRI.create("http://example.com/father#hasChild")),
-												df.getOWLThing())
-									),
-									df.getOWLObjectAllValuesFrom(
-											df.getOWLObjectProperty(IRI.create("http://example.com/father#hasChild")),
-											df.getOWLThing()
-											)
-				);
-		System.out.println(ce);
-		OWLClassExpressionMinimizer min = new OWLClassExpressionMinimizer(df, rc);
-		ce = min.minimizeClone(ce);
-		System.out.println(ce);
-		
-		CELOE_MCTS alg = new CELOE_MCTS(lp, rc);
-		alg.setMaxExecutionTimeInSeconds(10);
-		alg.setOperator(op);
-		alg.setWriteSearchTree(true);
-		alg.setSearchTreeFile("log/search-tree.log");
-		alg.setReplaceSearchTree(true);
-		alg.init();
-		alg.setKeepTrackOfBestScore(true);
-		
-		alg.start();
-
-		SortedMap<Long, Double> map = alg.getRuntimeVsBestScore(1, TimeUnit.SECONDS);
-		System.out.println(MapUtils.asTSV(map, "runtime", "best_score"));
-
-	}
+//	public static void main(String[] args) throws Exception{
+//		File file = new File("../examples/swore/swore.rdf");
+//		OWLClass classToDescribe = new OWLClassImpl(IRI.create("http://ns.softwiki.de/req/CustomerRequirement"));
+//		
+//		OWLOntology ontology = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(file);
+//		
+//		AbstractKnowledgeSource ks = new OWLAPIOntology(ontology);
+//		ks.init();
+//		
+//		OWLAPIReasoner baseReasoner = new OWLAPIReasoner(ks);
+//		baseReasoner.setReasonerImplementation(ReasonerImplementation.HERMIT);
+//        baseReasoner.init();
+//		ClosedWorldReasoner rc = new ClosedWorldReasoner(ks);
+//		rc.setReasonerComponent(baseReasoner);
+//		rc.init();
+//		
+//		ClassLearningProblem lp = new ClassLearningProblem(rc);
+////		lp.setEquivalence(false);
+//		lp.setClassToDescribe(classToDescribe);
+//		lp.init();
+//		
+//		RhoDRDown op = new RhoDRDown();
+//		op.setReasoner(rc);
+//		op.setUseNegation(false);
+//		op.setUseHasValueConstructor(false);
+//		op.setUseCardinalityRestrictions(true);
+//		op.setUseExistsConstructor(true);
+//		op.setUseAllConstructor(true);
+//		op.init();
+//		
+//		
+//		
+//		//(male ⊓ (∀ hasChild.⊤)) ⊔ (∃ hasChild.(∃ hasChild.male))
+//		OWLDataFactory df = new OWLDataFactoryImpl();
+//		OWLClass male = df.getOWLClass(IRI.create("http://example.com/father#male"));
+//		OWLClassExpression ce = df.getOWLObjectIntersectionOf(
+//									df.getOWLObjectUnionOf(
+//											male,
+//											df.getOWLObjectIntersectionOf(
+//													male, male),
+//											df.getOWLObjectSomeValuesFrom(
+//												df.getOWLObjectProperty(IRI.create("http://example.com/father#hasChild")),
+//												df.getOWLThing())
+//									),
+//									df.getOWLObjectAllValuesFrom(
+//											df.getOWLObjectProperty(IRI.create("http://example.com/father#hasChild")),
+//											df.getOWLThing()
+//											)
+//				);
+//		System.out.println(ce);
+//		OWLClassExpressionMinimizer min = new OWLClassExpressionMinimizer(df, rc);
+//		ce = min.minimizeClone(ce);
+//		System.out.println(ce);
+//		
+//		CELOE_MCTS alg = new CELOE_MCTS(lp, rc);
+//		alg.setMaxExecutionTimeInSeconds(10);
+//		alg.setOperator(op);
+//		alg.setWriteSearchTree(true);
+//		alg.setSearchTreeFile("log/search-tree.log");
+//		alg.setReplaceSearchTree(true);
+//		alg.init();
+//		alg.setKeepTrackOfBestScore(true);
+//		
+//		alg.start();
+//
+//		SortedMap<Long, Double> map = alg.getRuntimeVsBestScore(1, TimeUnit.SECONDS);
+//		System.out.println(MapUtils.asTSV(map, "runtime", "best_score"));
+//
+//	}
 	
 }

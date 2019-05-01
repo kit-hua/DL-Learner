@@ -65,7 +65,7 @@ public class CLI extends CLIBase2 {
 
 	private LearningAlgorithm algorithm;
 	private KnowledgeSource knowledgeSource;
-	
+
 	// some CLI options
 	@ConfigOption(defaultValue = "false", description = "Run in Cross-Validation mode")
 	private boolean performCrossValidation = false;
@@ -77,85 +77,85 @@ public class CLI extends CLIBase2 {
 	private AbstractReasonerComponent rs;
 
 	private AbstractCELA la;
-	
+
 
 	public CLI() {
-		
+
 	}
-	
+
 	public CLI(File confFile) {
 		this();
 		this.confFile = confFile;
 	}
-	
+
 	// separate init methods, because some scripts may want to just get the application
 	// context from a conf file without actually running it
 	@Override
 	public void init() throws IOException {
-    	if(context == null) {
-		    super.init();
-            
-            knowledgeSource = context.getBean(KnowledgeSource.class);
-            rs = getMainReasonerComponent();
-    		la = context.getBean(AbstractCELA.class);
-    		lp = context.getBean(AbstractClassExpressionLearningProblem.class);
-    	}
+		if(context == null) {
+			super.init();
+
+			knowledgeSource = context.getBean(KnowledgeSource.class);
+			rs = getMainReasonerComponent();
+			la = context.getBean(AbstractCELA.class);
+			lp = context.getBean(AbstractClassExpressionLearningProblem.class);
+		}
 	}
-	
-    @Override
-    public void run() {
-    	try {
+
+	@Override
+	public void run() {
+		try {
 			org.apache.log4j.Logger.getLogger("org.dllearner").setLevel(Level.toLevel(logLevel.toUpperCase()));
 		} catch (Exception e) {
 			logger.warn("Error setting log level to " + logLevel);
 		}
 
 		rs = getMainReasonerComponent();
-		
-		
-			if (performCrossValidation) {
-				la = context.getBeansOfType(AbstractCELA.class).entrySet().iterator().next().getValue();
-				
-				PosNegLP lp = context.getBean(PosNegLP.class);
-//				if(la instanceof QTL2){
-//					//new SPARQLCrossValidation((QTL2Disjunctive) la,lp,rs,nrOfFolds,false);
-//				}
-				if((la instanceof TDTClassifier)||(la instanceof DSTTDTClassifier) ){
-					
-					//TODO:  verify if the quality of the code can be improved
-					RefinementOperator op = context.getBeansOfType(DLTreesRefinementOperator.class).entrySet().iterator().next().getValue();
-					ArrayList<OWLClass> concepts = new ArrayList<>(rs.getClasses());
-					((DLTreesRefinementOperator) op).setAllConcepts(concepts);
-					
-					ArrayList<OWLObjectProperty> roles = new ArrayList<>(rs.getAtomicRolesList());
-					((DLTreesRefinementOperator) op).setAllConcepts(concepts);
-					((DLTreesRefinementOperator) op).setAllRoles(roles);
-					((DLTreesRefinementOperator) op).setReasoner(getMainReasonerComponent());
-					
-					if (la instanceof TDTClassifier)
-					    ((TDTClassifier)la).setOperator(op);
-					else
-						((DSTTDTClassifier)la).setOperator(op);
-					new CrossValidation2(la,lp,rs,nrOfFolds,false);
-				}else {
-					new CrossValidation2(la,lp,rs,nrOfFolds,false);
-				}
-			} else {
-				if(context.getBean(AbstractLearningProblem.class) instanceof AbstractClassExpressionLearningProblem) {
-					lp = context.getBean(AbstractClassExpressionLearningProblem.class);
-				} else {
-					
-				}
-				
-				Map<String, LearningAlgorithm> learningAlgs = context.getBeansOfType(LearningAlgorithm.class);
-//				knowledgeSource = context.getBeansOfType(Knowledge1Source.class).entrySet().iterator().next().getValue();
-				for(Entry<String, LearningAlgorithm> entry : learningAlgs.entrySet()){
-					algorithm = entry.getValue();
-					logger.info("Running algorithm instance \"" + entry.getKey() + "\" (" + algorithm.getClass().getSimpleName() + ")");
-					algorithm.start();
-				}
+
+
+		if (performCrossValidation) {
+			la = context.getBeansOfType(AbstractCELA.class).entrySet().iterator().next().getValue();
+
+			PosNegLP lp = context.getBean(PosNegLP.class);
+			//				if(la instanceof QTL2){
+			//					//new SPARQLCrossValidation((QTL2Disjunctive) la,lp,rs,nrOfFolds,false);
+			//				}
+			if((la instanceof TDTClassifier)||(la instanceof DSTTDTClassifier) ){
+
+				//TODO:  verify if the quality of the code can be improved
+				RefinementOperator op = context.getBeansOfType(DLTreesRefinementOperator.class).entrySet().iterator().next().getValue();
+				ArrayList<OWLClass> concepts = new ArrayList<>(rs.getClasses());
+				((DLTreesRefinementOperator) op).setAllConcepts(concepts);
+
+				ArrayList<OWLObjectProperty> roles = new ArrayList<>(rs.getAtomicRolesList());
+				((DLTreesRefinementOperator) op).setAllConcepts(concepts);
+				((DLTreesRefinementOperator) op).setAllRoles(roles);
+				((DLTreesRefinementOperator) op).setReasoner(getMainReasonerComponent());
+
+				if (la instanceof TDTClassifier)
+					((TDTClassifier)la).setOperator(op);
+				else
+					((DSTTDTClassifier)la).setOperator(op);
+				new CrossValidation2(la,lp,rs,nrOfFolds,false);
+			}else {
+				new CrossValidation2(la,lp,rs,nrOfFolds,false);
 			}
-    }
+		} else {
+			if(context.getBean(AbstractLearningProblem.class) instanceof AbstractClassExpressionLearningProblem) {
+				lp = context.getBean(AbstractClassExpressionLearningProblem.class);
+			} else {
+
+			}
+
+			Map<String, LearningAlgorithm> learningAlgs = context.getBeansOfType(LearningAlgorithm.class);
+			//				knowledgeSource = context.getBeansOfType(Knowledge1Source.class).entrySet().iterator().next().getValue();
+			for(Entry<String, LearningAlgorithm> entry : learningAlgs.entrySet()){
+				algorithm = entry.getValue();
+				logger.info("Running algorithm instance \"" + entry.getKey() + "\" (" + algorithm.getClass().getSimpleName() + ")");
+				algorithm.start();
+			}
+		}
+	}
 
 	/**
 	 * @return the lp
@@ -163,21 +163,47 @@ public class CLI extends CLIBase2 {
 	public AbstractClassExpressionLearningProblem getLearningProblem() {
 		return lp;
 	}
-	
+
 	/**
 	 * @return the rs
 	 */
 	public AbstractReasonerComponent getReasonerComponent() {
 		return rs;
 	}
-	
+
 	/**
 	 * @return the la
 	 */
 	public AbstractCELA getLearningAlgorithm() {
 		return la;
 	}
-    
+	
+	public static List<File> getConfigs (File baseFile){					
+		List<File> confs = new ArrayList<File>();
+		if(baseFile.isFile() && baseFile.getName().endsWith("_celoe.conf")) {
+			confs.add(baseFile);
+			return confs;
+		}
+			
+		
+		File[] files = baseFile.listFiles();
+		if(baseFile.isDirectory()) {			
+			for(int i = 0; i < files.length; i++) {
+				if(files[i].isFile()) {
+					if(files[i].getName().endsWith("_celoe.conf")) {
+						confs.add(files[i]);
+						System.out.println("found benchmark example: " + files[i]);
+					}
+				}
+				if(files[i].isDirectory()) {
+					confs.addAll(getConfigs(files[i]));
+				}
+			}
+		}
+		
+		return confs;
+	}
+
 	/**
 	 * @param args
 	 * @throws ParseException
@@ -185,16 +211,16 @@ public class CLI extends CLIBase2 {
 	 * @throws ReasoningMethodUnsupportedException
 	 */
 	public static void main(String[] args) throws ParseException, IOException, ReasoningMethodUnsupportedException {
-		
-//		System.out.println("DL-Learner " + Info.build + " [TODO: read pom.version and put it here (make sure that the code for getting the version also works in the release build!)] command line interface");
+
+		//		System.out.println("DL-Learner " + Info.build + " [TODO: read pom.version and put it here (make sure that the code for getting the version also works in the release build!)] command line interface");
 		System.out.println("DL-Learner command line interface");
-		
+
 		// currently, CLI has exactly one parameter - the conf file
 		if(args.length == 0) {
 			System.out.println("You need to give a conf file as argument.");
 			System.exit(0);
 		}
-		
+
 		// read file and print and print a message if it does not exist
 		File file = new File(args[args.length - 1]);
 		if(!file.exists()) {
@@ -202,49 +228,62 @@ public class CLI extends CLIBase2 {
 			System.exit(0);
 		}
 		
-		Resource confFile = new FileSystemResource(file);
+		List<File> confs = getConfigs(file);		
+
+
+		for(File conf : confs) {
+			System.out.println("============================ " + conf.getName() + " STARTS ============================");
+			Resource confFile = new FileSystemResource(conf);
+
+			List<Resource> springConfigResources = new ArrayList<>();
+
+			try {
+				//DL-Learner Configuration Object
+				IConfiguration configuration = new ConfParserConfiguration(confFile);
+
+				ApplicationContextBuilder builder = new DefaultApplicationContextBuilder();
+				ApplicationContext context =  builder.buildApplicationContext(configuration,springConfigResources);
+
+				// TODO: later we could check which command line interface is specified in the conf file
+				// for now we just use the default one
+
+				CLIBase2 cli;
+				if(context.containsBean("cli")) {
+					cli = (CLIBase2) context.getBean("cli");
+				} else {
+					cli = new CLI();
+				}
+				cli.setContext(context);
+				cli.setConfFile(conf);
+				cli.run();
+				System.out.println("============================ " + conf.getName() + " ENDS ============================\n");
+			} catch (Exception e) {
+				String stacktraceFileName = "log/error.log";
+
+				//Find the primary cause of the exception.
+				Throwable primaryCause = findPrimaryCause(e);
+
+				// Get the Root Error Message
+				logger.error("An Error Has Occurred During Processing.");
+				if (primaryCause != null) {
+					logger.error(primaryCause.getMessage());
+				}
+				logger.debug("Stack Trace: ", e);
+				logger.error("Terminating DL-Learner...and writing stacktrace to: " + stacktraceFileName);
+				createIfNotExists(new File(stacktraceFileName));
+
+				FileOutputStream fos = new FileOutputStream(stacktraceFileName);
+				PrintStream ps = new PrintStream(fos);
+				e.printStackTrace(ps);
+			}
+		}
 		
-		List<Resource> springConfigResources = new ArrayList<>();
+		System.out.println("============================ BENCHMARK FINISHED ============================\n");
+		System.out.println("============================================================================\n");
+		System.out.println("============================================================================\n");
+		
+	}
 
-        try {
-            //DL-Learner Configuration Object
-            IConfiguration configuration = new ConfParserConfiguration(confFile);
-
-            ApplicationContextBuilder builder = new DefaultApplicationContextBuilder();
-            ApplicationContext context =  builder.buildApplicationContext(configuration,springConfigResources);
-
-            // TODO: later we could check which command line interface is specified in the conf file
-            // for now we just use the default one
-
-            CLIBase2 cli;
-            if(context.containsBean("cli")) {
-                cli = (CLIBase2) context.getBean("cli");
-            } else {
-                cli = new CLI();
-            }
-            cli.setContext(context);
-            cli.setConfFile(file);
-            cli.run();
-        } catch (Exception e) {
-            String stacktraceFileName = "log/error.log";
-            
-            //Find the primary cause of the exception.
-            Throwable primaryCause = findPrimaryCause(e);
-
-            // Get the Root Error Message
-            logger.error("An Error Has Occurred During Processing.");
-            if (primaryCause != null) {
-            	logger.error(primaryCause.getMessage());
-            }
-            logger.debug("Stack Trace: ", e);
-            logger.error("Terminating DL-Learner...and writing stacktrace to: " + stacktraceFileName);
-            createIfNotExists(new File(stacktraceFileName));
-
-            FileOutputStream fos = new FileOutputStream(stacktraceFileName);
-            PrintStream ps = new PrintStream(fos);
-            e.printStackTrace(ps);
-        }
-    }
 
 	public boolean isPerformCrossValidation() {
 		return performCrossValidation;
@@ -263,11 +302,11 @@ public class CLI extends CLIBase2 {
 	}
 
 	//	public LearningAlgorithm getLearningAlgorithm() {
-//		return algorithm;
-//	}
-	
+	//		return algorithm;
+	//	}
+
 	public KnowledgeSource getKnowledgeSource() {
 		return knowledgeSource;
 	}
-	
+
 }

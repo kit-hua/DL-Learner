@@ -43,6 +43,9 @@ public class TreeViewer extends JPanel {
     private static JLabel currentTreeLabel;
     private static JLabel currentStepLabel;
     private static JLabel simulationLabel;
+    
+    private static final String TreeDir = "/Users/aris/Documents/repositories/ipr/aml/aml_learning/benchmarks/";
+    private static final String LogDir = "/Users/aris/Documents/repositories/ipr/aml/dl-learner/benchmarks/log";
 
     private boolean showHeuristicValues = false;
 
@@ -82,11 +85,12 @@ public class TreeViewer extends JPanel {
         openLogButton.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
             // go to default directory if it exists
-            if ((new File("/home/patrick/DL-Learner/log")).exists()) {
-                fc.setCurrentDirectory(new File("/home/patrick/DL-Learner/log"));
-            } else {
-                fc.setCurrentDirectory(new File("/home/patrick/dllearner-mcts/log"));
-            }
+//            if ((new File("/home/patrick/DL-Learner/log")).exists()) {
+//                fc.setCurrentDirectory(new File("/home/patrick/DL-Learner/log"));
+//            } else {
+//                fc.setCurrentDirectory(new File("/home/patrick/dllearner-mcts/log"));
+//            }
+            fc.setCurrentDirectory(new File(TreeDir));
             fc.showOpenDialog(frame);
             if (canvas.openTree(fc.getSelectedFile())) {
                 frame.setTitle("DL-Learner Tree Viewer: " + fc.getSelectedFile().getPath());
@@ -103,11 +107,12 @@ public class TreeViewer extends JPanel {
         openLogButton2.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
             // go to default directory if it exists
-            if ((new File("/home/patrick/DL-Learner/log")).exists()) {
-                fc.setCurrentDirectory(new File("/home/patrick/DL-Learner/log"));
-            } else {
-                fc.setCurrentDirectory(new File("/home/patrick/dllearner-mcts/log"));
-            }
+//            if ((new File("/home/patrick/DL-Learner/log")).exists()) {
+//                fc.setCurrentDirectory(new File("/home/patrick/DL-Learner/log"));
+//            } else {
+//                fc.setCurrentDirectory(new File("/home/patrick/dllearner-mcts/log"));
+//            }
+            fc.setCurrentDirectory(new File(LogDir));
             fc.showOpenDialog(frame);
             if (canvas.openLog(fc.getSelectedFile())) {
                 frame.setTitle("DL-Learner Tree Viewer: " + fc.getSelectedFile().getPath());
