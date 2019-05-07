@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
  *
  * @author Lorenz Buehmann
  */
+@ComponentAnn(name="dcela", shortName="dcela", version=1.0, description="CELOE is an adapted and extended version of the OCEL algorithm applied for the ontology engineering use case. See http://jens-lehmann.org/files/2011/celoe.pdf for reference.")
 public class DisjunctiveCELA extends AbstractCELA {
 
     private static final Logger log = LoggerFactory.getLogger(DisjunctiveCELA.class);
