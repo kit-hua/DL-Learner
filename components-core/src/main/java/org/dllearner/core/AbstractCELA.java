@@ -88,6 +88,13 @@ public abstract class AbstractCELA extends AbstractComponent implements ClassExp
 	protected boolean isRunning = false;
 	protected boolean stop = false;
 	
+	protected long logTime = 0;
+	protected long treeTime = 0;
+	protected long rewriteTime = 0;
+	protected long refineTime = 0;
+	protected long selectTime = 0;
+	protected int countIterations = 0;
+	
 	protected OWLClassExpressionMinimizer minimizer;
 	
 	@ConfigOption(defaultValue="true", description="Specifies whether returned expressions should " +
@@ -361,7 +368,7 @@ public abstract class AbstractCELA extends AbstractComponent implements ClassExp
 				AccMethodTwoValued accuracyMethod = ((PosNegLP)learningProblem).getAccuracyMethod();
 				if ( !(accuracyMethod instanceof AccMethodPredAcc)
 						&& !(accuracyMethod instanceof AccMethodFMeasure) ) {
-					str += ", " + AnnComponentManager.getName(accuracyMethod) + ": " + dfPercent.format(ed.getAccuracy());
+					str += ", " + AnnComponentManager.getShortName(accuracyMethod) + ": " + dfPercent.format(ed.getAccuracy());
 				}
 				str += ")\n";
 			} else {
@@ -462,7 +469,7 @@ public abstract class AbstractCELA extends AbstractComponent implements ClassExp
 	}
 
 	protected long getCurrentRuntimeInMilliSeconds() {
-		return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime);
+		return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime - logTime);
 	}
 
 	protected long getRemainingRuntimeInMilliseconds() {
