@@ -1,4 +1,4 @@
-package org.dllearner.algorithms.mcts;
+package org.dllearner.algorithms.layerwise;
 
 import com.jamonapi.Monitor;
 import com.jamonapi.MonitorFactory;

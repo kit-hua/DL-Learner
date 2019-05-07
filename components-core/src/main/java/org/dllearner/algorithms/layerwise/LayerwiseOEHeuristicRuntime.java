@@ -1,38 +1,14 @@
-/**
- * Copyright (C) 2007 - 2016, Jens Lehmann
- *
- * This file is part of DL-Learner.
- *
- * DL-Learner is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * DL-Learner is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-package org.dllearner.algorithms.celoe;
+package org.dllearner.algorithms.layerwise;
 
+import org.dllearner.algorithms.celoe.OENode;
 import org.dllearner.core.AbstractHeuristic;
 import org.dllearner.core.ComponentAnn;
 import org.dllearner.core.ComponentInitException;
 import org.dllearner.core.config.ConfigOption;
 
-/**
- * Search algorithm heuristic for the ontology engineering algorithm. The heuristic
- * has a strong bias towards short descriptions (i.e. the algorithm is likely to be
- * less suitable for learning complex descriptions).
- * 
- * @author Jens Lehmann
- *
- */
-@ComponentAnn(name = "OEHeuristicRuntime", shortName = "celoe_heuristic", version = 0.5)
-public class OEHeuristicRuntime extends AbstractHeuristic{
+
+@ComponentAnn(name = "MyOEHeuristic", shortName = "celoe_heuristic_lw", version = 0.5)
+public class LayerwiseOEHeuristicRuntime extends LayerwiseAbstractHeuristic{
 	
 	
 	@ConfigOption(description = "penalty for long descriptions (horizontal expansion) (strong by default)", defaultValue = "0.1")
@@ -46,7 +22,7 @@ public class OEHeuristicRuntime extends AbstractHeuristic{
 	@ConfigOption(defaultValue="0.1")
 	private double startNodeBonus = 0.1;
 	
-	public OEHeuristicRuntime() {
+	public LayerwiseOEHeuristicRuntime() {
 
 	}
 	
@@ -55,10 +31,10 @@ public class OEHeuristicRuntime extends AbstractHeuristic{
 
 		initialized = true;
 	}
-
+	
 	@Override
-	public double getNodeScore(OENode node) {
-		
+	public double getNodeScore(LayerwiseSearchTreeNode node) {
+
 		// accuracy as baseline
 		double score = node.getAccuracy();
 
@@ -112,6 +88,16 @@ public class OEHeuristicRuntime extends AbstractHeuristic{
 
 	public void setStartNodeBonus(double startNodeBonus) {
 		this.startNodeBonus = startNodeBonus;
+	}
+	
+	public String toString () {
+		String s = " - heuristic: " + "celoe_lw" + "\n";
+		s += "\t- expansionPenalty: " + expansionPenaltyFactor + "\n";
+		s += "\t- refinementPenalty: " + nodeRefinementPenalty + "\n";
+		s += "\t- gainBonus: " + gainBonusFactor + "\n";
+		s += "\t- startBonus: " + startNodeBonus + "\n";
+		
+		return s;		
 	}
 
 }

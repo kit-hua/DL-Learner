@@ -178,9 +178,9 @@ public class CLI extends CLIBase2 {
 		return la;
 	}
 	
-	public static List<File> getConfigs (File baseFile){					
+	public static List<File> getConfigs (File baseFile, boolean recursive){					
 		List<File> confs = new ArrayList<File>();
-		if(baseFile.isFile() && baseFile.getName().endsWith("_celoe.conf")) {
+		if(baseFile.isFile()) {
 			confs.add(baseFile);
 			return confs;
 		}
@@ -190,13 +190,13 @@ public class CLI extends CLIBase2 {
 		if(baseFile.isDirectory()) {			
 			for(int i = 0; i < files.length; i++) {
 				if(files[i].isFile()) {
-					if(files[i].getName().endsWith("_celoe.conf")) {
+					if(files[i].getName().contains(".conf")) {
 						confs.add(files[i]);
 						System.out.println("found benchmark example: " + files[i]);
 					}
 				}
-				if(files[i].isDirectory()) {
-					confs.addAll(getConfigs(files[i]));
+				if(files[i].isDirectory() && recursive) {
+					confs.addAll(getConfigs(files[i], true));
 				}
 			}
 		}
@@ -228,7 +228,7 @@ public class CLI extends CLIBase2 {
 			System.exit(0);
 		}
 		
-		List<File> confs = getConfigs(file);		
+		List<File> confs = getConfigs(file, false);		
 
 
 		for(File conf : confs) {

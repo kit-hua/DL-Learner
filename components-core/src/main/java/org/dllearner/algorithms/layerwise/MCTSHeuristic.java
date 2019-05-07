@@ -1,4 +1,4 @@
-package org.dllearner.algorithms.mcts;
+package org.dllearner.algorithms.layerwise;
 
 import org.dllearner.algorithms.celoe.OENode;
 import org.dllearner.core.AbstractClassExpressionLearningProblem;

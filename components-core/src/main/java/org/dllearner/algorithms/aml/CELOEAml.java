@@ -761,12 +761,12 @@ public class CELOEAml extends CELOEAmlBase{
 			currentHighestAccuracy = bestEvaluatedDescriptions.getBestAccuracy();
 			expressionTestCountLastImprovement = expressionTests;
 			timeLastImprovement = System.nanoTime();
-			long durationInMillis = getCurrentRuntimeInMilliSeconds();
+			long durationInMillis = getCurrentRuntimeInMilliSeconds() - logTime;
 			String durationStr = getDurationAsString(durationInMillis);
 
 			// track new best accuracy if enabled
 			if(keepTrackOfBestScore) {
-				runtimeVsBestScore.put(getCurrentRuntimeInMilliSeconds(), currentHighestAccuracy);
+				runtimeVsBestScore.put(getCurrentRuntimeInMilliSeconds() - logTime, currentHighestAccuracy);
 			}
 			return durationStr;
 		}

@@ -1,49 +1,16 @@
-/**
- * Copyright (C) 2007 - 2016, Jens Lehmann
- *
- * This file is part of DL-Learner.
- *
- * DL-Learner is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * DL-Learner is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-package org.dllearner.algorithms.celoe;
+package org.dllearner.algorithms.layerwise;
 
 import java.text.DecimalFormat;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.TreeSet;
 
-import org.dllearner.core.AbstractHeuristic;
-import org.dllearner.core.AbstractSearchTreeNode;
 import org.dllearner.utilities.datastructures.SearchTreeNode;
 import org.dllearner.utilities.owl.OWLAPIRenderers;
 import org.dllearner.utilities.owl.OWLClassExpressionUtils;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 
-/**
- * A node in the search tree of the ontology engineering algorithm.
- * 
- * Differences to the node structures in other algorithms (this may change):
- * - covered examples are not stored in node (i.e. coverage needs to be recomputed
- * for child nodes, which costs time but saves memory)
- * - only evaluated nodes are stored
- * - too weak nodes are not stored
- * - redundant nodes are not stored (?)
- * - only accuracy is stored to make the node structure reusable for different
- *   learning problems and -algorithms
- * 
- * @author Jens Lehmann
- *
- */
-public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTreeNode {
+public class LayerwiseSearchTreeNode extends LayerwiseAbstractSearchTreeNode<LayerwiseSearchTreeNode> implements SearchTreeNode {
 
 	protected OWLClassExpression description;
 	
@@ -58,39 +25,56 @@ public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTree
 	
 	protected static DecimalFormat dfPercent = new DecimalFormat("0.00%");
 	
+	protected int expansionCounter = 0;
+	protected int accumulatedExpansionCounter = 0;
+	// wehther or not this node is recently expanded and new children are added
+	protected int recentlyExpanded = 0;
+	protected LayerwiseSearchTreeNode bestChild;
 	protected double score = Double.NaN;
 	
-//	protected int expansionCounter;
-//	protected int accumulatedExpansionCounter;
-	// wehther or not this node is recently expanded and new children are added
-//	protected int recentlyExpanded = 0;
-//	protected OENode bestChild;
-	
-	public OENode(OWLClassExpression description, double accuracy) {
+	public LayerwiseSearchTreeNode(OWLClassExpression description, double accuracy, Comparator<LayerwiseSearchTreeNode> comparator) {
+		super(comparator);
 		this.description = description;
 		this.accuracy = accuracy;
 		this.horizontalExpansion = OWLClassExpressionUtils.getLength(description) - 1;
-//		this.expansionCounter = 0;
-//		this.accumulatedExpansionCounter = 0;
+		
+		this.children = new TreeSet<>(comparator);
 	}
 	
-	public OENode(OWLClassExpression description, double accuracy, boolean modifyHe) {
+	public LayerwiseSearchTreeNode(OWLClassExpression description, double accuracy, boolean modifyHe, Comparator<LayerwiseSearchTreeNode> comparator) {
+		super(comparator);
 		this.description = description;
 		this.accuracy = accuracy;
 		if(modifyHe)
 			this.horizontalExpansion = OWLClassExpressionUtils.getLength(description) - 1;
 		else
 			this.horizontalExpansion = OWLClassExpressionUtils.getLength(description);
-		
-//		this.expansionCounter = 0;
-//		this.accumulatedExpansionCounter = 0;
+				
+		this.children = new TreeSet<>(comparator);
 	}	
 	
-//	public OENode(OENode parentNode, OWLClassExpression description, double accuracy) {
+//	public LayerwiseSearchTreeNode(LayerwiseSearchTreeNode parentNode, OWLClassExpression description, double accuracy) {
 //		this(description, accuracy);
 //		this.setParent(parentNode);
 //	}
-
+	
+	/**
+	 * update the counters after this node get expanded
+	 */
+	public void updateCounter () {
+				
+		if(recentlyExpanded != 0) {
+			this.expansionCounter += recentlyExpanded;
+			recentlyExpanded = 0;
+		}
+		
+		this.accumulatedExpansionCounter = this.expansionCounter;
+		for(LayerwiseSearchTreeNode child : this.getChildren()) {			
+			this.accumulatedExpansionCounter += child.getAccumulatedExpansionCounter();
+		}
+		
+		this.score = Double.NaN;
+	}
 
 	public void incHorizontalExpansion() {
 		horizontalExpansion++;
@@ -137,16 +121,16 @@ public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTree
 //		ret += "score" + NLPHeuristic.getNodeScore(this) + ",";
 		ret += "acc:" + dfPercent.format(accuracy) + ", ";
 		ret += "he:" + horizontalExpansion + ", ";		
-		ret += "c:" + children.size() + ", ";
-		ret += "ref:" + refinementCount;
-		
+//		ret += "c:" + children.size() + ", ";
+//		ret += "ref:" + refinementCount + "]";
+		ret += "cnt:" + expansionCounter + ", ";
+		ret += "acnt:" + accumulatedExpansionCounter;
 		if(score != Double.NaN) {
 			ret +=  ", score:" + score + "]";
 		}else {
 			ret += "]";
 		}
-//		ret += "cnt:" + expansionCounter + ", ";
-//		ret += "acnt:" + accumulatedExpansionCounter + "]";
+
 		return ret;
 	}
 	
@@ -168,6 +152,49 @@ public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTree
 	public void setRefinementCount(int refinementCount) {
 		this.refinementCount = refinementCount;
 	}
+	
+	/**
+	 * @return the expansionCounter
+	 */
+	public int getExpansionCounter() {
+		return expansionCounter;
+	}
+
+
+	/**
+	 * @return the accumulatedExpansionCounter
+	 */
+	public int getAccumulatedExpansionCounter() {
+		return accumulatedExpansionCounter;
+	}
+	
+	/**
+	 * @return the newChildrenAdded
+	 */
+	public int getRecentlyExpanded() {
+		return recentlyExpanded;
+	}
+
+	/**
+	 * @param newChildrenAdded the newChildrenAdded to set
+	 */
+	public void setRecentlyExpanded(int recentlyExpanded) {
+		this.recentlyExpanded = recentlyExpanded;
+	}
+
+	/**
+	 * @return the bestChild
+	 */
+	public LayerwiseSearchTreeNode getBestChild() {
+		return bestChild;
+	}
+
+	/**
+	 * @param bestChild the bestChild to set
+	 */
+	public void setBestChild(LayerwiseSearchTreeNode bestChild) {
+		this.bestChild = bestChild;
+	}
 
 	/**
 	 * @return the score
@@ -182,5 +209,4 @@ public class OENode extends AbstractSearchTreeNode<OENode> implements SearchTree
 	public void setScore(double score) {
 		this.score = score;
 	}
-
 }

@@ -1,4 +1,4 @@
-package org.dllearner.algorithms.mcts;
+package org.dllearner.algorithms.layerwise;
 
 import org.dllearner.algorithms.celoe.OENode;
 import org.dllearner.core.AbstractHeuristic;
@@ -8,7 +8,7 @@ import java.util.*;
 
 public class MCTSUtil {
     static Random rnd = new Random();
-
+    
     /**
      * Samples one node of a given set at uniform random, where only those nodes are considered, that have the best
      * score according to the given heuristic.

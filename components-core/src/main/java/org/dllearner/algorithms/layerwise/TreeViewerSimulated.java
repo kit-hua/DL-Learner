@@ -1,9 +1,12 @@
-package org.dllearner.algorithms.mcts;
+package org.dllearner.algorithms.layerwise;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -13,7 +16,7 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 
-public class TreeViewer extends JPanel {
+public class TreeViewerSimulated extends JPanel {
 
     class TreeNode {
         String concept = "";
@@ -29,8 +32,10 @@ public class TreeViewer extends JPanel {
         double celoe = 0;
         double uct = 0;
         
+        boolean isSelected = false;
+        
         Set<TreeNode> getAllNodes (){        	
-	    		Set<TreeNode> nodes = new HashSet<TreeViewer.TreeNode>();
+	    		Set<TreeNode> nodes = new HashSet<TreeViewerSimulated.TreeNode>();
 	    		nodes.add(this);
 	    		for(TreeNode child : children) {
 	    			nodes.addAll(child.getAllNodes());
@@ -91,7 +96,7 @@ public class TreeViewer extends JPanel {
         frame.setTitle("DL-Learner Tree Viewer");
 
         // Canvas for drawing the tree on to
-        TreeViewer canvas = new TreeViewer();
+        TreeViewerSimulated canvas = new TreeViewerSimulated();
         canvas.setSize(2000, 2000);
         canvas.setPreferredSize(new Dimension(2000, 2000));
         canvas.setLayout(null);
@@ -107,13 +112,22 @@ public class TreeViewer extends JPanel {
         openLogButton.setBounds(0, 5, 90, 40);
         openLogButton.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
-            // go to default directory if it exists
-//            if ((new File("/home/patrick/DL-Learner/log")).exists()) {
-//                fc.setCurrentDirectory(new File("/home/patrick/DL-Learner/log"));
-//            } else {
-//                fc.setCurrentDirectory(new File("/home/patrick/dllearner-mcts/log"));
-//            }
             fc.setCurrentDirectory(new File(BenchmarkDir));
+            fc.setFileFilter(new FileFilter() {
+				
+				@Override
+				public String getDescription() {					
+					return "Tree logs (*.tree)";
+				}
+				
+				@Override
+				public boolean accept(File f) {
+					if(f.isDirectory())
+						return true;
+					else						
+						return f.getName().endsWith(".tree");
+				}
+			});
             fc.showOpenDialog(frame);
             if (canvas.openTree(fc.getSelectedFile())) {
                 frame.setTitle("DL-Learner Tree Viewer: " + fc.getSelectedFile().getPath());
@@ -129,12 +143,6 @@ public class TreeViewer extends JPanel {
         openLogButton2.setBounds(90, 5, 90, 40);
         openLogButton2.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
-            // go to default directory if it exists
-//            if ((new File("/home/patrick/DL-Learner/log")).exists()) {
-//                fc.setCurrentDirectory(new File("/home/patrick/DL-Learner/log"));
-//            } else {
-//                fc.setCurrentDirectory(new File("/home/patrick/dllearner-mcts/log"));
-//            }
             fc.setCurrentDirectory(new File(BenchmarkDir));
             fc.showOpenDialog(frame);
             if (canvas.openLog(fc.getSelectedFile())) {
@@ -219,7 +227,8 @@ public class TreeViewer extends JPanel {
                 int w = frame.getWidth();
                 int h = frame.getHeight();
                 scrollPane.setSize(w-205, h-70);
-                sidePanel.setLocation(w-195, 0);
+                scrollPane.getViewport().setViewPosition(new Point(1000,100));
+                sidePanel.setLocation(w-195, 0);           
                 currentConceptLabel.setLocation(5, h-60);
                 currentConceptLabel.setSize(w-205, 20);
                 frame.repaint();
@@ -232,17 +241,17 @@ public class TreeViewer extends JPanel {
     }
 
 
-    private static void nextTree(TreeViewer canvas) {
+    private static void nextTree(TreeViewerSimulated canvas) {
         int newIndex = Math.min(canvas.allTrees.size() - 1, canvas.currentTreeIndex + 1);
         canvas.showTree(newIndex);
     }
 
-    private static void previousTree(TreeViewer canvas) {
+    private static void previousTree(TreeViewerSimulated canvas) {
         int newIndex = Math.max(0, canvas.currentTreeIndex - 1);
         canvas.showTree(newIndex);
     }
 
-    private static void nextStep(TreeViewer canvas) {
+    private static void nextStep(TreeViewerSimulated canvas) {
         switch (canvas.currentSubStep) {
             case SELECTION:
                 canvas.currentSubStep = Step.EXPANSION;
@@ -264,7 +273,7 @@ public class TreeViewer extends JPanel {
         canvas.repaint();
     }
 
-    private static void prevStep(TreeViewer canvas) {
+    private static void prevStep(TreeViewerSimulated canvas) {
         switch (canvas.currentSubStep) {
             case SELECTION:
                 canvas.currentSubStep = Step.BACKPROP;
@@ -285,7 +294,7 @@ public class TreeViewer extends JPanel {
         canvas.repaint();
     }
 
-    private static void setStepLabel(TreeViewer canvas) {
+    private static void setStepLabel(TreeViewerSimulated canvas) {
         switch (canvas.currentSubStep) {
             case SELECTION:
                 currentStepLabel.setText("Selection");
@@ -307,7 +316,7 @@ public class TreeViewer extends JPanel {
         simulationLabel.setText("");
     }
 
-    private static void showSimulation(TreeViewer canvas) {
+    private static void showSimulation(TreeViewerSimulated canvas) {
         JSONObject currentStep = canvas.steps.getJSONObject(canvas.currentTreeIndex);
         if (currentStep.has("simulation")) {
             JSONArray sim = currentStep.getJSONArray("simulation");
@@ -354,6 +363,8 @@ public class TreeViewer extends JPanel {
 
         //if (!treeFile.getName().contains(".log")) return false;
         boolean treeAdded = false;
+        
+        String selectedDesc = "";
 
         try (BufferedReader br = new BufferedReader(new FileReader(treeFile))) {
             String line;
@@ -373,12 +384,20 @@ public class TreeViewer extends JPanel {
                     }
                     continue;
                 }
+                
+                String selectedNodeIndicator = "selected node: ";
+                if(line.contains(selectedNodeIndicator)) {
+                		String selectedNode = line.substring(selectedNodeIndicator.length());
+                		selectedDesc = selectedNode.substring(0, selectedNode.indexOf("["));
+                		selectedDesc = selectedDesc.trim();
+                		continue;
+                }
 
                 /* If this line does not represent a node, then skip it.
                  * (If it's a node, it always has an accuracy) */
                 if (!line.contains("acc")) {
                     continue;
-                }
+                }                           
 
                 /* Get the current node's description (concept) */
                 int arrowIndex = line.indexOf("|-->");
@@ -421,6 +440,9 @@ public class TreeViewer extends JPanel {
                 currentNode.level = level;
                 currentNode.celoe = celoe;
                 currentNode.uct = uct;
+                if(concept.equals(selectedDesc)) {
+            			currentNode.isSelected = true;
+                }            
 
                 /* The last node that was added to the current layer of the tree is this node.
                  * This is relevant when adding children in the next line. */
@@ -490,7 +512,7 @@ public class TreeViewer extends JPanel {
         Tree tree = allTrees.get(i);
         
         TreeNode lastRoot = null;
-        Set<TreeNode> lastNodes = new HashSet<TreeViewer.TreeNode>();
+        Set<TreeNode> lastNodes = new HashSet<TreeViewerSimulated.TreeNode>();
         Set<String> lastConcepts = new HashSet<String>();
         if(i>1) {
         		lastRoot = allTrees.get(i-1).root;
@@ -552,6 +574,11 @@ public class TreeViewer extends JPanel {
         } else if (node.celoe == allTrees.get(currentTreeIndex).maxCeloeScore) {
             nodeButton.setForeground(Color.RED);
             nodeButton.setOpaque(true);            
+        }
+        
+        if(node.isSelected) {
+        		nodeButton.setBackground(Color.RED);
+        		nodeButton.setOpaque(true);
         }
         
         if(!lastConcepts.isEmpty() && !lastConcepts.contains(node.concept)) {

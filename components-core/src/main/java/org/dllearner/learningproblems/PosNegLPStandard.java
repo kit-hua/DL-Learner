@@ -18,6 +18,7 @@
  */
 package org.dllearner.learningproblems;
 
+import org.dllearner.accuracymethods.AccMethodPredAcc;
 import org.dllearner.core.*;
 import org.dllearner.utilities.CoverageAdapter;
 import org.dllearner.utilities.ReasoningUtils.Coverage;
@@ -104,6 +105,10 @@ public class PosNegLPStandard extends PosNegLP implements Cloneable{
 	@Override
 	public double getAccuracyOrTooWeak(OWLClassExpression description, double noise) {
 		return reasoningUtil.getAccuracyOrTooWeak2(accuracyMethod, description, positiveExamples, negativeExamples, noise);
+	}
+	
+	public double getAccuracyOrTooWeakExact(OWLClassExpression description, double noise) {
+		return reasoningUtil.getAccuracyOrTooWeak2(new AccMethodPredAcc(), description, positiveExamples, negativeExamples, noise);
 	}
 
 	/* (non-Javadoc)
