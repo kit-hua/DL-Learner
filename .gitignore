@@ -1,0 +1,12 @@
+*.class
+.project
+.settings
+.classpath
+target
+
+*.swp
+deptree.txt
+cache
+log
+*.idea
+*.iml

@@ -1,0 +1,124 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<artifactId>scripts</artifactId>
+	<packaging>jar</packaging>
+
+	<name>Executable scripts</name>
+	<url>http://aksw.org/Projects/DLLearner</url>
+
+	<parent>
+		<groupId>org.dllearner</groupId>
+		<artifactId>dllearner-parent</artifactId>
+		<version>1.3.1-SNAPSHOT</version>
+	</parent>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.dllearner</groupId>
+			<artifactId>components-core</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.dllearner</groupId>
+			<artifactId>interfaces</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>net.sourceforge.secondstring</groupId>
+			<artifactId>secondstring</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.dumontierlab</groupId>
+			<artifactId>pdb2rdf-parser</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.dumontierlab</groupId>
+			<artifactId>pdb2rdf-cli</artifactId>
+			<exclusions>
+				<exclusion>
+					<artifactId>jena</artifactId>
+					<groupId>com.hp.hpl.jena</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math3</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>nz.ac.waikato.cms.weka</groupId>
+			<artifactId>weka-dev</artifactId>
+		</dependency>
+		
+		<!--<dependency>
+		    <groupId>org.semanticweb.elk</groupId>
+		    <artifactId>elk-owlapi</artifactId>
+		</dependency>-->
+
+		<!-- <dependency>
+			<groupId>net.sourceforge.owlapi</groupId>
+			<artifactId>owlapi-reasoner</artifactId>
+			<exclusions>
+				<exclusion>
+					<artifactId>owlapi-api</artifactId>
+					<groupId>net.sourceforge.owlapi</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>net.sourceforge.owlapi</groupId>
+			<artifactId>owlapi-util</artifactId>
+			<exclusions>
+				<exclusion>
+					<artifactId>owlapi-api</artifactId>
+					<groupId>net.sourceforge.owlapi</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency> -->
+
+
+		
+            
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.4.0</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<executable>java</executable>
+					<arguments>
+						<argument>-Xms512m</argument>
+						<argument>-Xmx10000m</argument>
+					</arguments>
+				</configuration>
+			</plugin>
+		</plugins>
+
+	</build>
+</project>
