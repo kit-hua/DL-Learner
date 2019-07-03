@@ -1,4 +1,4 @@
-package org.dllearner.algorithms.rrch;
+package org.dllearner.algorithms.rrhc;
 
 import org.aksw.jena_sparql_api.utils.CnfUtils;
 import org.json.JSONArray;

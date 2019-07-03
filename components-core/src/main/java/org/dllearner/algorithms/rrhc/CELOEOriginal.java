@@ -16,67 +16,79 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.dllearner.algorithms.rrch;
+package org.dllearner.algorithms.rrhc;
 
+import com.google.common.collect.Sets;
+
+import org.apache.jena.base.Sys;
+import org.dllearner.accuracymethods.AccMethodPredAcc;
+import org.dllearner.accuracymethods.AccMethodPredAccNegOnly;
+import org.dllearner.algorithms.celoe.OEHeuristicRuntime;
+import org.dllearner.algorithms.celoe.OENode;
 import org.dllearner.core.*;
 import org.dllearner.core.config.ConfigOption;
+import org.dllearner.core.owl.ClassHierarchy;
+import org.dllearner.core.owl.DatatypePropertyHierarchy;
+import org.dllearner.core.owl.ObjectPropertyHierarchy;
+import org.dllearner.kb.OWLAPIOntology;
+import org.dllearner.learningproblems.ClassAsInstanceLearningProblem;
 import org.dllearner.learningproblems.ClassLearningProblem;
+import org.dllearner.learningproblems.PosNegLP;
+import org.dllearner.learningproblems.PosNegLPStandard;
+import org.dllearner.learningproblems.PosOnlyLP;
+import org.dllearner.reasoning.ClosedWorldReasoner;
+import org.dllearner.reasoning.OWLAPIReasoner;
+import org.dllearner.reasoning.ReasonerImplementation;
+import org.dllearner.reasoning.SPARQLReasoner;
+import org.dllearner.refinementoperators.*;
 import org.dllearner.utilities.*;
+import org.dllearner.utilities.datastructures.SearchTree;
 import org.dllearner.utilities.owl.*;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl;
+import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
- * The RRHC learning algorithm for learning description logic concepts
- * It uses the basic CELOE heuristic (OEHeuristicRuntime)
- * and a rapid restart hill climbing search for next node selection 
- * 
- * @author Yingbing Hua
- *
+ * This is a copy of the CELOE algorithm for benchmarking purposes
+ * the major modification is the correction of horizontal expansion
+ * some features are added for better logging
  */
 @SuppressWarnings("CloneDoesntCallSuperClone")
-@ComponentAnn(name="RRHC", shortName="rrhc", version=1.0, description="Rapid Restart Hill Climbing for Learning Description Logic Concepts")
-public class RRHC extends CELOEBase implements Cloneable{
+@ComponentAnn(name="CELOEOriginal", shortName="celoe_ori", version=1.0, description="CELOEOriginal is an adapted and extended version of the CELOE algorithm for benchmarking purposes")
+public class CELOEOriginal extends CELOEBase implements Cloneable{
 
-	private static final Logger logger = LoggerFactory.getLogger(RRHC.class);
+	private static final Logger logger = LoggerFactory.getLogger(CELOEOriginal.class);
 
 	@ConfigOption(defaultValue="celoe_heuristic")
-	protected LayerwiseAbstractHeuristic heuristic;
-	protected LayerwiseSearchTree<LayerwiseSearchTreeNode> searchTree;
+	protected AbstractHeuristic heuristic;
+	
+	protected SearchTree<OENode> searchTree;
 	
 	
-	/**
-	 * ------------------------------------------------------------------------------------------------------------------------------
-	 * Layer-wise tree traverse parameters 
-	 */	
-	@ConfigOption(defaultValue="0", description="each refinement must introduce at least so many new nodes into the tree")
-	protected int newNodesLowerbound = 0;
+	List<OENode> selectedNodes = new ArrayList<OENode>();
 	
-	@ConfigOption(defaultValue="0", description="break the traverse if the score increase smaller than this threshold")
-	protected double traverseBreakingThreshold = 0;
-	
-	List<LayerwiseSearchTreeNode> selectedNodes = new ArrayList<LayerwiseSearchTreeNode>();
-	LayerwiseSearchTreeNode currentNode = null;
-	
-	/**
-	 * --------------------------------------------------------------------------------------------------------------------------------
-	 */
 
-	public RRHC() {}
+	public CELOEOriginal() {}
 
-	public RRHC(RRHC rrhc){
-		super(rrhc);
-		setHeuristic(rrhc.heuristic);
+	public CELOEOriginal(CELOEOriginal celoe){
+		super(celoe);
+		setHeuristic(celoe.heuristic);
 	}
 
-	public RRHC(AbstractClassExpressionLearningProblem problem, AbstractReasonerComponent reasoner) {
+	public CELOEOriginal(AbstractClassExpressionLearningProblem problem, AbstractReasonerComponent reasoner) {
 		super(problem, reasoner);
 	}
 	
@@ -86,11 +98,12 @@ public class RRHC extends CELOEBase implements Cloneable{
 		
 		// if no one injected a heuristic, we use a default one
 		if(heuristic == null) {
-			heuristic = new LayerwiseOEHeuristicRuntime();
+			heuristic = new OEHeuristicRuntime();
 			heuristic.init();
 		}
 		
 		super.init();
+	
 		initialized = true;
 	}
 	
@@ -102,15 +115,14 @@ public class RRHC extends CELOEBase implements Cloneable{
 		nanoStartTime = System.nanoTime();
 		
 		currentHighestAccuracy = 0.0;
-		LayerwiseSearchTreeNode nextNode;
+		OENode nextNode;
 
 		String s = "\nCurrent config: \n";
 		s += " - logging to: " + logFile + "\n";
 		s += " - heStep: " + heStep + "\n";
 		s += " - heCorr: " + heCorrection + "\n";
-		s += this.heuristic.toString();
+		s += this.heuristic.toString() + "\n";
 		s += " - acc: " + this.learningProblem.getAccuracyMethod().getClass().getSimpleName() + "\n";
-		s += " - breaking: " + this.traverseBreakingThreshold + "\n";
 		s += " - start: " + startClass + "\n";
 		try {
 			saveLog(s, true);
@@ -118,15 +130,14 @@ public class RRHC extends CELOEBase implements Cloneable{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
- 		LayerwiseSearchTreeNode root = addNode(startClass, null);
- 		if (writeSearchTree) {
+		
+		OENode root = addNode(startClass, null);
+		if (writeSearchTree) {
 			writeSearchTree(root);
 		}
- 		currentNode = root;
 		
- 		long runtimeLastRec = getCurrentRuntimeInMilliSeconds();
- 		
- 		countIterations++;
+		countIterations++;
+		long runtimeLastRec = getCurrentRuntimeInMilliSeconds();		
 		while (!terminationCriteriaSatisfied()) {
 			
 			if(getCurrentRuntimeInMilliSeconds() - runtimeLastRec > 60000) {
@@ -146,64 +157,39 @@ public class RRHC extends CELOEBase implements Cloneable{
 			int horizExp = nextNode.getHorizontalExpansion();
 			
 			// apply refinement operator
-			int newNodes = 0;
-			double newBestScore = Double.MIN_VALUE;
-			boolean expandAgain = true;
-			while(expandAgain) {				
-				 // if newNodesLowerbound = 0: we want to do one refinement only
-				if(this.newNodesLowerbound == 0) {
-					expandAgain = false;
-				}
+			TreeSet<OWLClassExpression> refinements = refineNode(nextNode);
+			while(!refinements.isEmpty() && !terminationCriteriaSatisfied()) {		
 				
-				TreeSet<OWLClassExpression> refinements = refineNode(nextNode);
-				while(!refinements.isEmpty() && !terminationCriteriaSatisfied()) {
-					// pick element from set
-					OWLClassExpression refinement = refinements.pollFirst();
-
-					// get length of class expression
-					int length = OWLClassExpressionUtils.getLength(refinement);
-					
-					// we ignore all refinements with lower length and too high depth
-					// (this also avoids duplicate node children)
-					if(heCorrection && length > horizExp && OWLClassExpressionUtils.getDepth(refinement) <= maxDepth) {
-						// add node to search tree
-						LayerwiseSearchTreeNode newNode = addNode(refinement, nextNode);
-						if(newNode != null) {
-//							newNodes.add(newNode);
-							newNodes++;
-							if(newBestScore < newNode.getCeloeScore())
-								newBestScore = newNode.getCeloeScore();
-						}
-					}
-					if(!heCorrection && length >= horizExp && OWLClassExpressionUtils.getDepth(refinement) <= maxDepth) {
-						LayerwiseSearchTreeNode newNode = addNode(refinement, nextNode);
-						if(newNode != null) {
-//							newNodes.add(newNode);
-							newNodes++;
-							if(newBestScore < newNode.getCeloeScore())
-								newBestScore = newNode.getCeloeScore();
-						}
-					}
+				// pick element from set
+				OWLClassExpression refinement = refinements.pollFirst();
+				
+				// get length of class expression
+				int length = OWLClassExpressionUtils.getLength(refinement);
+				
+				// we ignore all refinements with lower length and too high depth
+				// (this also avoids duplicate node children)
+				if(heCorrection && length > horizExp && OWLClassExpressionUtils.getDepth(refinement) <= maxDepth) {
+					// add node to search tree
+					addNode(refinement, nextNode);
 				}
-				// if newNodesLowerbound > 0: we want to do so many refinements until we have so enough new nodes
-				if(expandAgain && newNodes >= this.newNodesLowerbound)
-					expandAgain = false;
+				if(!heCorrection && length >= horizExp && OWLClassExpressionUtils.getDepth(refinement) <= maxDepth) {
+					addNode(refinement, nextNode);
+				}
 			}
-			
 
 			if (writeSearchTree) {
 				writeSearchTree(nextNode);
 			}
 			
 			showIfBetterSolutionsFound();						
-		}
+		}		
 		
 		if(singleSuggestionMode) {
 			bestEvaluatedDescriptions.add(bestDescription, bestAccuracy, learningProblem);
 		}
-								
+		
 		// print some stats
-		printAlgorithmRunStats(searchTree.size());
+		printAlgorithmRunStats(searchTree.size());	
 		
 		logger.info("writing tree strcuture and selected nodes to log file.");
 		
@@ -222,7 +208,7 @@ public class RRHC extends CELOEBase implements Cloneable{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-				
+		
 		isRunning = false;
 	}
 	
@@ -234,13 +220,12 @@ public class RRHC extends CELOEBase implements Cloneable{
 			e1.printStackTrace();
 		}
 		
-		for(LayerwiseSearchTreeNode node : selectedNodes) {
+		for(OENode node : selectedNodes) {
 			String s = "";
 			if(verbose)
 				s = node.getId() + " : " + node.toString();
 			else
 				s = node.getId();
-			
 			try {
 				saveLog(s, false);
 			} catch (FileNotFoundException e1) {
@@ -250,7 +235,8 @@ public class RRHC extends CELOEBase implements Cloneable{
 		}			
 	}
 	
-	private void printTreeStructure() {		
+	
+	private void printTreeStructure() {
 		try {
 			saveLog("tree structure: " + searchTree.getDepth(), false);
 		} catch (FileNotFoundException e) {
@@ -258,12 +244,12 @@ public class RRHC extends CELOEBase implements Cloneable{
 			e.printStackTrace();
 		}
 		
-		List<LayerwiseSearchTreeNode> nodes = new ArrayList<LayerwiseSearchTreeNode>();
+		List<OENode> nodes = new ArrayList<OENode>();
 		nodes.add(searchTree.getRoot());
 		printTreeStructure(nodes);
 	}
 	
-	private void printTreeStructure(List<LayerwiseSearchTreeNode> nodesOnLevel) {
+	private void printTreeStructure(List<OENode> nodesOnLevel) {
 		if(nodesOnLevel.isEmpty())
 			return;
 		try {
@@ -272,16 +258,18 @@ public class RRHC extends CELOEBase implements Cloneable{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		List<LayerwiseSearchTreeNode> nextLevel = new ArrayList<LayerwiseSearchTreeNode>();
-		for(LayerwiseSearchTreeNode node : nodesOnLevel) {
+		List<OENode> nextLevel = new ArrayList<OENode>();
+		for(OENode node : nodesOnLevel) {
 			nextLevel.addAll(node.getChildren());			
 		}
 		printTreeStructure(nextLevel);
 	}
 	
-	
-	private double getCeloeScore (LayerwiseSearchTreeNode node) {
-		return heuristic.getNodeScore(node);
+	private double getNodeScore (OENode node) {
+		if(node.getScore() != Double.NaN)
+			return node.getScore();
+		else
+			return heuristic.getNodeScore(node);
 	}
 	
 	/**
@@ -289,21 +277,20 @@ public class RRHC extends CELOEBase implements Cloneable{
 	 * @param iterator
 	 * @param sorted
 	 */
-	protected void getCELOEDecidability (Iterator<LayerwiseSearchTreeNode> iterator, boolean sorted) {
+	protected void getCELOEDecidability (Iterator<OENode> iterator, boolean sorted) {
 
 		if(!sorted)
 			return;
 		
 		double highest_score = Double.MIN_VALUE;
 		if(iterator.hasNext()) {
-			highest_score = getCeloeScore(iterator.next());
+			highest_score = getNodeScore(iterator.next());
 		}
-			
 		
 		int nrBestNodes = 1;
 		while(iterator.hasNext()) {
-			// Only look at the nodes with the highest CELOE score
-			double score = getCeloeScore(iterator.next());			
+			// Only look at the nodes with the highest CELOE score			
+			double score = getNodeScore(iterator.next());
 			if (score < highest_score) {
 				break;
 			}
@@ -318,69 +305,60 @@ public class RRHC extends CELOEBase implements Cloneable{
 		}
 	}
 	
-	private LayerwiseSearchTreeNode getNextNodeToExpand() {
-	
-		 /* Traverse the tree from root according to UCT */            
-        while (!currentNode.getChildren().isEmpty()) {
-        	
-        		LayerwiseSearchTreeNode child = currentNode.descendingIterator().next();
+	private OENode getNextNodeToExpand() {
+		Iterator<OENode> it = searchTree.descendingIterator();
 
-        		// if the current node is better than all its children
-        		// then select the current node               	
-        		double currentScore = getCeloeScore(currentNode);
-        		double childScore = getCeloeScore(child);
-        		
-        		if (childScore - currentScore <=  traverseBreakingThreshold) {
-        			break;
-        		}            		
-        		
-        		// otherwise, go to the next level 
-        		currentNode = child;
-        }
-        return currentNode;
+		while(it.hasNext()) {
+			OENode node = it.next();
+			if (isExpandAccuracy100Nodes() && node.getHorizontalExpansion() < OWLClassExpressionUtils.getLength(node.getDescription())) {
+					return node;
+			} else {
+				if(node.getAccuracy() < 1.0 || node.getHorizontalExpansion() < OWLClassExpressionUtils.getLength(node.getDescription())) {
+					return node;
+				}
+			}
+		}
+		// this should practically never be called, since for any reasonable learning
+		// task, we will always have at least one node with less than 100% accuracy
+		throw new RuntimeException("CELOE could not find any node with lesser accuracy.");
+		
 	}
 	
 	// expand node horizontically
-	protected TreeSet<OWLClassExpression> refineNode(LayerwiseSearchTreeNode node) {
+	protected TreeSet<OWLClassExpression> refineNode(OENode node) {
 		
 		long refineStart = System.nanoTime();
-		
-		// in case of normal celoe, whose score depends on the horizontal expansion
 		// we have to remove and add the node since its heuristic evaluation changes through the expansion
 		// (you *must not* include any criteria in the heuristic which are modified outside of this method,
 		// otherwise you may see rarely occurring but critical false ordering in the nodes set)
-
-		// remove the node from the tree
 		searchTree.updatePrepare(node);
-		
 		int horizExp = node.getHorizontalExpansion();
-				
+		
+		int localHeStep = heStep;
+//		if(node.isRoot() && node.getExpansionCounter() == 0) {
+//			localHeStep = 3;
+//		}
+		
 		TreeSet<OWLClassExpression> refinements = new TreeSet<OWLClassExpression>();
 		if(heCorrection)
-			refinements = (TreeSet<OWLClassExpression>) operator.refine(node.getDescription(), horizExp+1+heStep);
+			refinements = (TreeSet<OWLClassExpression>) operator.refine(node.getDescription(), horizExp+1+localHeStep);
 		else
-			refinements = (TreeSet<OWLClassExpression>) operator.refine(node.getDescription(), horizExp+heStep);
+			refinements = (TreeSet<OWLClassExpression>) operator.refine(node.getDescription(), horizExp+localHeStep);
 		
-		// increase the he for next loop
-		// if we had a heStep>0, we need to increase the he more than once
-		for(int i = 0; i <= heStep; i++) {
+		if(localHeStep == 0)
 			node.incHorizontalExpansion();
+		else {
+			for(int i = 0; i < localHeStep; i++) {
+				node.incHorizontalExpansion();
+			}
 		}		
 		
 		node.setRefinementCount(refinements.size());
-		
-		// re add the node to the tree
 		searchTree.updateDone(node);
 		
 		long refineEnd = System.nanoTime();
 		refineTime += (refineEnd - refineStart);
 		
-		getCeloeScore(node);
-		
-		// if node is not root, then take its parent as a start node for next iteration
-		// otherwise, use the root node again
-		if(!node.isRoot())
-			currentNode = node.getParent();
 		return refinements;
 	}
 	
@@ -389,7 +367,7 @@ public class RRHC extends CELOEBase implements Cloneable{
 	 * Add node to search tree if it is not too weak.
 	 * @return TRUE if node was added and FALSE otherwise
 	 */
-	protected LayerwiseSearchTreeNode addNode(OWLClassExpression description, LayerwiseSearchTreeNode parentNode) {
+	protected OENode addNode(OWLClassExpression description, OENode parentNode) {
 		
 		// redundancy check (return if redundant)
 		boolean nonRedundant = descriptions.add(description);
@@ -407,7 +385,7 @@ public class RRHC extends CELOEBase implements Cloneable{
 			if(!isDescriptionAllowed(description, parentNode.getExpression())) {
 				return null;
 			}
-		}
+		}		
 		
 		// quality of class expression (return if too weak)
 		double accuracy = learningProblem.getAccuracyOrTooWeak(description, noise);
@@ -425,10 +403,20 @@ public class RRHC extends CELOEBase implements Cloneable{
 			return null;
 		}
 		
+		
 		long treeStart = System.nanoTime();
-		LayerwiseSearchTreeNode node = new LayerwiseSearchTreeNode(description, accuracy, heCorrection, heuristic);
+		OENode node = new OENode(description, accuracy, heCorrection);
 		searchTree.addNode(parentNode, node);
-//		getCeloeScore(node);
+		
+//		if(accuracy == 1) {
+//			try {
+//				saveLog(node.getId() + ":" + node.toString(), true);
+//			} catch (FileNotFoundException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		}
+			
 			
 		long treeEnd = System.nanoTime();
 		treeTime += (treeEnd - treeStart);
@@ -461,7 +449,7 @@ public class RRHC extends CELOEBase implements Cloneable{
 			//TODO: rewrite forte/uncle_small will produce "male and married only nothing" from "male and married max 0 thing"
 			//      and the reasoner will have different instance retrieval results based on this
 			OWLClassExpression niceDescription = rewrite(node.getExpression());
-//			rewriteCount++;
+//			OWLClassExpression niceDescription = description;
 
 			if(niceDescription.equals(classToDescribe)) {
 				return null;
@@ -479,17 +467,26 @@ public class RRHC extends CELOEBase implements Cloneable{
 			if(forceMutualDifference) {
 				for(EvaluatedDescription<? extends Score> ed : bestEvaluatedDescriptions.getSet()) {
 					if(Math.abs(ed.getAccuracy()-accuracy) <= 0.00001 && ConceptTransformation.isSubdescription(niceDescription, ed.getDescription())) {
+//						System.out.println("shorter: " + ed.getDescription());
 						shorterDescriptionExists = true;
 						break;
 					}
 				}
 			}
 			
+//			System.out.println("shorter description? " + shorterDescriptionExists + " nice: " + niceDescription);
 			if(!shorterDescriptionExists) {
 				if(!filterFollowsFromKB || !((ClassLearningProblem)learningProblem).followsFromKB(niceDescription)) {
+//					System.out.println(node + "->" + niceDescription);
 					bestEvaluatedDescriptions.add(niceDescription, accuracy, learningProblem);
+//					System.out.println("acc: " + accuracy);
+//					System.out.println(bestEvaluatedDescriptions);
 				}
 			}
+			
+//			bestEvaluatedDescriptions.add(node.getDescription(), accuracy, learningProblem);
+			
+//			System.out.println(bestEvaluatedDescriptions.getSet().size());
 		}
 		long rewriteEnd = System.nanoTime();
 		rewriteTime += (rewriteEnd - rewriteStart);
@@ -500,24 +497,25 @@ public class RRHC extends CELOEBase implements Cloneable{
 	protected void reset() {
 		// set all values back to their default values (used for running
 		// the algorithm more than once)
-		searchTree = new LayerwiseSearchTree<>(heuristic);
+		searchTree = new SearchTree<>(heuristic);
 		super.reset();
 	}
 	
 	
-	private StringBuilder nodeToString (LayerwiseSearchTreeNode node) {
+	private StringBuilder nodeToString (OENode node) {
 		StringBuilder treeString = new StringBuilder();
 		String nodeStr = node.toString();
 		nodeStr = nodeStr.substring(0, nodeStr.length()-1);
 		treeString.append(nodeStr);
-//		treeString.append(", celoe:");
-//		treeString.append(getCeloeScore(node));
+		treeString.append(", celoe:");
+		treeString.append(getNodeScore(node));
+		
 		treeString.append("]\n");
 		
 		return treeString;
 	}
 	
-	private StringBuilder toTreeString(LayerwiseSearchTreeNode node, int depth) {
+	private StringBuilder toTreeString(OENode node, int depth) {
 		StringBuilder treeString = new StringBuilder();
 		for (int i = 0; i < depth - 1; i++) {
 			treeString.append("  ");
@@ -528,7 +526,7 @@ public class RRHC extends CELOEBase implements Cloneable{
 		
 		treeString.append(nodeToString(node));
 
-		for (LayerwiseSearchTreeNode child : node.getChildren()) {
+		for (OENode child : node.getChildren()) {
 			treeString.append(toTreeString(child, depth+1));
 		}
 		return treeString;
@@ -546,7 +544,7 @@ public class RRHC extends CELOEBase implements Cloneable{
 		}
 	}
 	
-	protected void writeSearchTree(LayerwiseSearchTreeNode selected) {
+	protected void writeSearchTree(OENode selected) {
 		long logStart = System.nanoTime();
 		StringBuilder treeString = new StringBuilder("------------- Iteration " + countIterations + " -------------\n");
 		treeString.append("best node: ").append(bestEvaluatedDescriptions.getBest()).append("\n");
@@ -565,48 +563,20 @@ public class RRHC extends CELOEBase implements Cloneable{
 		logTime += (logEnd - logStart);
 	}
 
-	public LayerwiseAbstractHeuristic getHeuristic() {
+	public AbstractHeuristic getHeuristic() {
 		return heuristic;
 	}
 
 	@Autowired(required=false)
-	public void setHeuristic(LayerwiseAbstractHeuristic heuristic) {
+	public void setHeuristic(AbstractHeuristic heuristic) {
 		this.heuristic = heuristic;
 	}
 
-	/**
-	 * @return the newNodesLowerbound
-	 */
-	public int getNewNodesLowerbound() {
-		return newNodesLowerbound;
-	}
-
-	/**
-	 * @param newNodesLowerbound the newNodesLowerbound to set
-	 */
-	public void setNewNodesLowerbound(int newNodesLowerbound) {
-		this.newNodesLowerbound = newNodesLowerbound;
-	}
-
-	/**
-	 * @return the traverseBreakingThreshold
-	 */
-	public double getTraverseBreakingThreshold() {
-		return traverseBreakingThreshold;
-	}
-
-	/**
-	 * @param traverseBreakingThreshold the traverseBreakingThreshold to set
-	 */
-	public void setTraverseBreakingThreshold(double traverseBreakingThreshold) {
-		this.traverseBreakingThreshold = traverseBreakingThreshold;
-	}
-
 	/* (non-Javadoc)
-	 * @see java.lang.Object#clone()
-	 */
+			 * @see java.lang.Object#clone()
+			 */
 	@Override
 	public Object clone() throws CloneNotSupportedException {
-		return new RRHC(this);
+		return new CELOEOriginal(this);
 	}	
 }

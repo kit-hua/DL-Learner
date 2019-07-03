@@ -1,4 +1,4 @@
-package org.dllearner.algorithms.rrch;
+package org.dllearner.algorithms.rrhc;
 
 import java.io.File;
 import java.io.FileNotFoundException;

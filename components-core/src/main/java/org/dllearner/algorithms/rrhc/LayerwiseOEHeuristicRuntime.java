@@ -1,4 +1,4 @@
-package org.dllearner.algorithms.rrch;
+package org.dllearner.algorithms.rrhc;
 
 import org.dllearner.algorithms.celoe.OENode;
 import org.dllearner.core.AbstractHeuristic;

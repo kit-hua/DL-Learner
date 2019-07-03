@@ -1,4 +1,4 @@
-package org.dllearner.algorithms.rrch;
+package org.dllearner.algorithms.rrhc;
 
 import java.util.ArrayList;
 import java.util.Collection;
