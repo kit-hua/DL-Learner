@@ -1,4 +1,4 @@
-package org.dllearner.algorithms.layerwise;
+package org.dllearner.algorithms.rrhc;
 
 import org.dllearner.algorithms.celoe.OENode;
 import org.dllearner.core.AbstractHeuristic;
@@ -6,21 +6,27 @@ import org.dllearner.core.ComponentAnn;
 import org.dllearner.core.ComponentInitException;
 import org.dllearner.core.config.ConfigOption;
 
-
-@ComponentAnn(name = "MyOEHeuristic", shortName = "celoe_heuristic_lw", version = 0.5)
+/**
+ * This is a copy of org.dllearner.algorithms.celoe.OEHeuristicRuntime for the sake of layerwise traversing of the search treee
+ * TODO: shall be refactored with a new architecture instead of duplicating the code
+ * 
+ * @author Yingbing Hua
+ *
+ */
+@ComponentAnn(name = "LayerwiseOEHeuristic", shortName = "celoe_heuristic_lw", version = 0.5)
 public class LayerwiseOEHeuristicRuntime extends LayerwiseAbstractHeuristic{
 	
 	
 	@ConfigOption(description = "penalty for long descriptions (horizontal expansion) (strong by default)", defaultValue = "0.1")
-	private double expansionPenaltyFactor = 0.1;
+	protected double expansionPenaltyFactor = 0.1;
 	@ConfigOption(description = "bonus for being better than parent node", defaultValue = "0.3")
-	private double gainBonusFactor = 0.3;
+	protected double gainBonusFactor = 0.3;
 	@ConfigOption(description = "penalty if a node description has very many refinements since exploring such a node is computationally very expensive",
 			defaultValue = "0.0001")
-	private double nodeRefinementPenalty = 0.0001;
+	protected double nodeRefinementPenalty = 0.0001;
 	
 	@ConfigOption(defaultValue="0.1")
-	private double startNodeBonus = 0.1;
+	protected double startNodeBonus = 0.1;
 	
 	public LayerwiseOEHeuristicRuntime() {
 
@@ -34,6 +40,11 @@ public class LayerwiseOEHeuristicRuntime extends LayerwiseAbstractHeuristic{
 	
 	@Override
 	public double getNodeScore(LayerwiseSearchTreeNode node) {
+		
+		// only compute the score if it is necessary
+		if(!node.getCeloeScore().equals(Double.NaN)) {
+			return node.getCeloeScore();
+		}
 
 		// accuracy as baseline
 		double score = node.getAccuracy();
@@ -53,8 +64,8 @@ public class LayerwiseOEHeuristicRuntime extends LayerwiseAbstractHeuristic{
 		// penalty for having many child nodes (stuck prevention)
 		score -= node.getRefinementCount() * nodeRefinementPenalty;
 		
-		node.setScore(score);
-
+		node.setCeloeScore(score);
+		
 		return score;
 	}
 

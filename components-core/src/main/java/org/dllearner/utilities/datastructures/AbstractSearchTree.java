@@ -95,6 +95,7 @@ public class AbstractSearchTree <T extends AbstractSearchTreeNode> {
 			throw new Error("Tree Root already set");
 		}
 		this.root = node;
+		node.setId("0");
 		node.notifyTree(this);
 	}
 

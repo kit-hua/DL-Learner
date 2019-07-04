@@ -190,7 +190,7 @@ public class CLI extends CLIBase2 {
 		if(baseFile.isDirectory()) {			
 			for(int i = 0; i < files.length; i++) {
 				if(files[i].isFile()) {
-					if(files[i].getName().contains(".conf")) {
+					if(files[i].getName().contains(".conf") && !files[i].getName().contains("neg")) {
 						confs.add(files[i]);
 						System.out.println("found benchmark example: " + files[i]);
 					}
@@ -228,12 +228,17 @@ public class CLI extends CLIBase2 {
 			System.exit(0);
 		}
 		
-		List<File> confs = getConfigs(file, false);		
-
+		List<File> confs = getConfigs(file, true);
+		// duplicate the first conf since the first one is always slow
+		confs.add(0, confs.get(0));
 
 		for(File conf : confs) {
 			System.out.println("============================ " + conf.getName() + " STARTS ============================");
 			Resource confFile = new FileSystemResource(conf);
+			AbstractReasonerComponent.allLength = 0;
+			AbstractReasonerComponent.retCountAcc = 0;
+			AbstractReasonerComponent.retCountMat = 0;
+			AbstractReasonerComponent.retCountRef = 0;
 
 			List<Resource> springConfigResources = new ArrayList<>();
 

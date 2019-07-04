@@ -1,0 +1,28 @@
+RRHC is an algorithm for concept learning in description logics.
+
+It is based on the CELOE algorithm regarding:
+* heuristic
+* refinement operator
+
+It implements a so-called "rapid restart hill climbing" strategy for selecting tree node for expansion. 
+The current implementation is still prototypical in sense that it has much duplicated code from CELOE.
+All code can be found in the package `dl-learner/components-core/src/main/java/org/dllearner/algorithms/rrch`.
+
+For running the algorithm, make a config file similar to the examples from DL-Learner with following changes:
+
+* h.type = "celoe_heuristic_lw"
+* h.expansionPenaltyFactor = 0.02
+* h.nodeRefinementPenalty = 0
+* h.startNodeBonus = 0
+* h.gainBonusFactor = 0.2
+
+* alg.type = "rrhc"
+* alg.heStep = 0
+* alg.heCorrection = false
+
+For a better comparison with CELOE, apply following changes to any original DL-Learner config:
+
+* h.type = "celoe_heuristic"
+* alg.type = "celoe_ori"
+* alg.heStep = 0
+* alg.heCorrection = false

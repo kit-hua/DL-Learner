@@ -1,6 +1,7 @@
-package org.dllearner.algorithms.layerwise;
+package org.dllearner.algorithms.rrhc;
 
 import java.text.DecimalFormat;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeSet;
@@ -10,7 +11,16 @@ import org.dllearner.utilities.owl.OWLAPIRenderers;
 import org.dllearner.utilities.owl.OWLClassExpressionUtils;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 
-public class LayerwiseSearchTreeNode extends LayerwiseAbstractSearchTreeNode<LayerwiseSearchTreeNode> implements SearchTreeNode {
+/**
+ * This is a copy of org.dllearner.utilities.datastructures.AbstractSearchTree for the sake of layerwise traversing of the search treee
+ * It replaces the global priority queue with individual queues of each node
+ * It also stores the score with the node
+ * TODO: shall be refactored with a new architecture instead of duplicating the code
+ * 
+ * @author Yingbing Hua
+ *
+ */
+public class LayerwiseSearchTreeNode extends LayerwiseAbstractSearchTreeNode<LayerwiseSearchTreeNode>{
 
 	protected OWLClassExpression description;
 	
@@ -25,20 +35,16 @@ public class LayerwiseSearchTreeNode extends LayerwiseAbstractSearchTreeNode<Lay
 	
 	protected static DecimalFormat dfPercent = new DecimalFormat("0.00%");
 	
-	protected int expansionCounter = 0;
-	protected int accumulatedExpansionCounter = 0;
-	// wehther or not this node is recently expanded and new children are added
-	protected int recentlyExpanded = 0;
-	protected LayerwiseSearchTreeNode bestChild;
-	protected double score = Double.NaN;
+	// use Double object instead of double value to allow comparison between Double.NaN 
+	protected Double celoeScore = new Double(Double.NaN);
 	
 	public LayerwiseSearchTreeNode(OWLClassExpression description, double accuracy, Comparator<LayerwiseSearchTreeNode> comparator) {
 		super(comparator);
 		this.description = description;
 		this.accuracy = accuracy;
 		this.horizontalExpansion = OWLClassExpressionUtils.getLength(description) - 1;
-		
-		this.children = new TreeSet<>(comparator);
+				
+		this.children = new TreeSet<>(comparator);		
 	}
 	
 	public LayerwiseSearchTreeNode(OWLClassExpression description, double accuracy, boolean modifyHe, Comparator<LayerwiseSearchTreeNode> comparator) {
@@ -53,32 +59,9 @@ public class LayerwiseSearchTreeNode extends LayerwiseAbstractSearchTreeNode<Lay
 		this.children = new TreeSet<>(comparator);
 	}	
 	
-//	public LayerwiseSearchTreeNode(LayerwiseSearchTreeNode parentNode, OWLClassExpression description, double accuracy) {
-//		this(description, accuracy);
-//		this.setParent(parentNode);
-//	}
-	
-	/**
-	 * update the counters after this node get expanded
-	 */
-	public void updateCounter () {
-				
-		if(recentlyExpanded != 0) {
-			this.expansionCounter += recentlyExpanded;
-			recentlyExpanded = 0;
-		}
-		
-		this.accumulatedExpansionCounter = this.expansionCounter;
-		for(LayerwiseSearchTreeNode child : this.getChildren()) {			
-			this.accumulatedExpansionCounter += child.getAccumulatedExpansionCounter();
-		}
-		
-		this.score = Double.NaN;
-	}
-
 	public void incHorizontalExpansion() {
 		horizontalExpansion++;
-		this.score = Double.NaN;
+		this.celoeScore = Double.NaN;
 	}
 	
 	public boolean isRoot() {
@@ -117,20 +100,11 @@ public class LayerwiseSearchTreeNode extends LayerwiseAbstractSearchTreeNode<Lay
 	
 	public String getShortDescription(String baseURI, Map<String, String> prefixes) {
 		String ret = OWLAPIRenderers.toDLSyntax(description) + " [";
-//		String ret = OWLAPIRenderers.toManchesterOWLSyntax(description) + " [";
-//		ret += "score" + NLPHeuristic.getNodeScore(this) + ",";
 		ret += "acc:" + dfPercent.format(accuracy) + ", ";
-		ret += "he:" + horizontalExpansion + ", ";		
-//		ret += "c:" + children.size() + ", ";
-//		ret += "ref:" + refinementCount + "]";
-		ret += "cnt:" + expansionCounter + ", ";
-		ret += "acnt:" + accumulatedExpansionCounter;
-		if(score != Double.NaN) {
-			ret +=  ", score:" + score + "]";
-		}else {
-			ret += "]";
-		}
-
+		ret += "he:" + horizontalExpansion + ", ";				
+		// always append celoe score at the end, even if it is NaN
+		ret +=  "celoe:" + celoeScore + "]";
+		
 		return ret;
 	}
 	
@@ -152,61 +126,19 @@ public class LayerwiseSearchTreeNode extends LayerwiseAbstractSearchTreeNode<Lay
 	public void setRefinementCount(int refinementCount) {
 		this.refinementCount = refinementCount;
 	}
-	
-	/**
-	 * @return the expansionCounter
-	 */
-	public int getExpansionCounter() {
-		return expansionCounter;
-	}
 
-
-	/**
-	 * @return the accumulatedExpansionCounter
-	 */
-	public int getAccumulatedExpansionCounter() {
-		return accumulatedExpansionCounter;
-	}
-	
-	/**
-	 * @return the newChildrenAdded
-	 */
-	public int getRecentlyExpanded() {
-		return recentlyExpanded;
-	}
-
-	/**
-	 * @param newChildrenAdded the newChildrenAdded to set
-	 */
-	public void setRecentlyExpanded(int recentlyExpanded) {
-		this.recentlyExpanded = recentlyExpanded;
-	}
-
-	/**
-	 * @return the bestChild
-	 */
-	public LayerwiseSearchTreeNode getBestChild() {
-		return bestChild;
-	}
-
-	/**
-	 * @param bestChild the bestChild to set
-	 */
-	public void setBestChild(LayerwiseSearchTreeNode bestChild) {
-		this.bestChild = bestChild;
-	}
 
 	/**
 	 * @return the score
 	 */
-	public double getScore() {
-		return score;
+	public Double getCeloeScore() {
+		return celoeScore;
 	}
 
 	/**
 	 * @param score the score to set
 	 */
-	public void setScore(double score) {
-		this.score = score;
+	public void setCeloeScore(Double score) {
+		this.celoeScore = score;
 	}
 }

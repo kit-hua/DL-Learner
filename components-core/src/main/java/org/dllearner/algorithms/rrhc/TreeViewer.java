@@ -1,4 +1,4 @@
-package org.dllearner.algorithms.layerwise;
+package org.dllearner.algorithms.rrhc;
 
 import org.aksw.jena_sparql_api.utils.CnfUtils;
 import org.json.JSONArray;
@@ -14,6 +14,7 @@ import java.awt.event.ComponentEvent;
 import java.awt.geom.Line2D;
 import java.io.*;
 import java.nio.file.Files;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.List;
 
@@ -31,12 +32,6 @@ public class TreeViewer extends JPanel {
 		int maxChildX = 0;
 
         double celoe = 0;
-		double uct = 0;
-		int count = 0; //expansion counter
-		int accCount = 0; //accumulated expansion counter
-		double exploitation = 0;
-		double exploration = 0;
-
 		boolean isSelected = false;
 
 		Set<TreeNode> getAllNodes (){        	
@@ -75,25 +70,21 @@ public class TreeViewer extends JPanel {
 	private static JLabel currentConceptLabel;
 	private static JLabel currentTreeLabel;
 	private static JLabel currentStepLabel;
-	private static JLabel simulationLabel;
 
 	//    private boolean showCeloe = false;
 //	private boolean showUct = true;
 
-	private static final String BenchmarkDir = "/Users/aris/Documents/repositories/ipr/aml/aml_learning/benchmarks/family-benchmark/he1";
+	private static final String BenchmarkDir = "/Users/aris/Documents/repositories/ipr/aml/aml_learning/benchmarks/he0-false/0517-predacc/results/0001_tree";
 
-	private boolean showHeuristicValues = false;
-
+//	private boolean showHeuristicValues = false;	
+//	private boolean singleStepMode = false;
 	private JSONArray steps;
-	private boolean singleStepMode = false;
 	enum Step {
 		SELECTION,
-		EXPANSION,
-		SIMULATION,
-		BACKPROP
+		EXPANSION
 	}
-	private Step currentSubStep = Step.SELECTION;
-
+	private Step currentSubStep = Step.SELECTION;	
+	protected static DecimalFormat dfPercent = new DecimalFormat("0.00%");
 
 	public static void main(String[] args) {
 		JFrame frame = new JFrame();
@@ -115,9 +106,9 @@ public class TreeViewer extends JPanel {
 		frame.add(sidePanel);
 
 		// Open button
-		JButton openLogButton = new JButton("Tree");
-		openLogButton.setBounds(0, 5, 90, 40);
-		openLogButton.addActionListener(e -> {
+		JButton opentreeButton = new JButton("Tree");
+		opentreeButton.setBounds(0, 5, 90, 40);
+		opentreeButton.addActionListener(e -> {
 			JFileChooser fc = new JFileChooser();
 			fc.setCurrentDirectory(new File(BenchmarkDir));
 			fc.setFileFilter(new FileFilter() {
@@ -144,23 +135,7 @@ public class TreeViewer extends JPanel {
 						JOptionPane.ERROR_MESSAGE);
 			}
 		});
-		sidePanel.add(openLogButton);
-
-		JButton openLogButton2 = new JButton("Log");
-		openLogButton2.setBounds(90, 5, 90, 40);
-		openLogButton2.addActionListener(e -> {
-			JFileChooser fc = new JFileChooser();
-			fc.setCurrentDirectory(new File(BenchmarkDir));
-			fc.showOpenDialog(frame);
-			if (canvas.openLog(fc.getSelectedFile())) {
-				frame.setTitle("DL-Learner Tree Viewer: " + fc.getSelectedFile().getPath());
-				canvas.showTree(0);
-			} else {
-				JOptionPane.showMessageDialog(new JFrame(), "Couldn't open log file", "Dialog",
-						JOptionPane.ERROR_MESSAGE);
-			}
-		});
-		sidePanel.add(openLogButton2);
+		sidePanel.add(opentreeButton);
 
 		// Current tree number
 		currentTreeLabel = new JLabel("Step 0 / 0");
@@ -182,29 +157,23 @@ public class TreeViewer extends JPanel {
 		sidePanel.add(nextTreeButton);
 
 
-		JButton previousStepButton = new JButton("<");
-		previousStepButton.setBounds(0, 180, 90, 30);
-		previousStepButton.addActionListener(e -> {
-			prevStep(canvas);
-		});
-		sidePanel.add(previousStepButton);
+//		JButton previousStepButton = new JButton("<");
+//		previousStepButton.setBounds(0, 180, 90, 30);
+//		previousStepButton.addActionListener(e -> {
+//			prevStep(canvas);
+//		});
+//		sidePanel.add(previousStepButton);
+//
+//		JButton nextStepButton = new JButton(">");
+//		nextStepButton.setBounds(90, 180, 90, 30);
+//		nextStepButton.addActionListener(e -> {
+//			nextStep(canvas);
+//		});
+//		sidePanel.add(nextStepButton);
 
-		JButton nextStepButton = new JButton(">");
-		nextStepButton.setBounds(90, 180, 90, 30);
-		nextStepButton.addActionListener(e -> {
-			nextStep(canvas);
-		});
-		sidePanel.add(nextStepButton);
-
-		currentStepLabel = new JLabel("Selection");
-		currentStepLabel.setBounds(0, 215, 180, 20);
-		sidePanel.add(currentStepLabel);
-
-		simulationLabel = new JLabel();
-		simulationLabel.setBounds(0, 240, 180, 300);
-		sidePanel.add(simulationLabel);
-		simulationLabel.setVerticalAlignment(JLabel.TOP);
-
+//		currentStepLabel = new JLabel("Selection");
+//		currentStepLabel.setBounds(0, 215, 180, 20);
+//		sidePanel.add(currentStepLabel);
 
 		JTextField gotoLevelText = new JTextField();
 		gotoLevelText.setBounds(0, 140, 100, 20);
@@ -214,7 +183,7 @@ public class TreeViewer extends JPanel {
 		gotoButton.setBounds(105, 140, 60, 20);
 		gotoButton.addActionListener(e -> canvas.showTree(Integer.parseInt(gotoLevelText.getText())-1));
 		sidePanel.add(gotoButton);
-
+		
 		// Current concept
 		currentConceptLabel = new JLabel("-");
 		currentConceptLabel.setBounds(5, 710, 800, 20);
@@ -242,8 +211,6 @@ public class TreeViewer extends JPanel {
 			}
 		});
 
-
-
 		frame.setVisible(true);
 	}
 
@@ -265,15 +232,8 @@ public class TreeViewer extends JPanel {
 			nextTree(canvas);
 			break;
 		case EXPANSION:
-			canvas.currentSubStep = Step.SIMULATION;
-			showSimulation(canvas);
-			break;
-		case SIMULATION:
-			canvas.currentSubStep = Step.BACKPROP;
-			clearSimulation();
-			break;
-		case BACKPROP:
 			canvas.currentSubStep = Step.SELECTION;
+			nextTree(canvas);
 			break;
 		}
 		setStepLabel(canvas);
@@ -283,18 +243,11 @@ public class TreeViewer extends JPanel {
 	private static void prevStep(TreeViewer canvas) {
 		switch (canvas.currentSubStep) {
 		case SELECTION:
-			canvas.currentSubStep = Step.BACKPROP;
+			canvas.currentSubStep = Step.EXPANSION;
 			break;
 		case EXPANSION:
 			canvas.currentSubStep = Step.SELECTION;
 			previousTree(canvas);
-			break;
-		case SIMULATION:
-			canvas.currentSubStep = Step.EXPANSION;
-			clearSimulation();
-			break;
-		case BACKPROP:
-			canvas.currentSubStep = Step.SIMULATION;
 			break;
 		}
 		setStepLabel(canvas);
@@ -309,51 +262,7 @@ public class TreeViewer extends JPanel {
 		case EXPANSION:
 			currentStepLabel.setText("Expansion");
 			break;
-		case SIMULATION:
-			currentStepLabel.setText("Simulation");
-			break;
-		case BACKPROP:
-			currentStepLabel.setText("Backpropagation");
-			break;
 		}
-	}
-
-
-	private static void clearSimulation() {
-		simulationLabel.setText("");
-	}
-
-	private static void showSimulation(TreeViewer canvas) {
-		JSONObject currentStep = canvas.steps.getJSONObject(canvas.currentTreeIndex);
-		if (currentStep.has("simulation")) {
-			JSONArray sim = currentStep.getJSONArray("simulation");
-			StringBuilder simText = new StringBuilder("<html><p style='line-height: 200%;'>");
-			for (int i = 0; i < sim.length(); i++) {
-				simText.append(sim.getString(i)).append("<br>");
-			}
-			simulationLabel.setText(simText.append("</p></html>").toString());
-		} else {
-			clearSimulation();
-		}
-	}
-
-
-	private boolean openLog(File selectedFile) {
-		try (BufferedReader br = new BufferedReader(new FileReader(selectedFile))) {
-			String line = br.readLine();
-			JSONObject log = new JSONObject(line);
-			steps = log.getJSONArray("steps");
-			System.out.println(log.get("tree"));
-			openTree(new File(log.getString("tree")));
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
-
-		singleStepMode = true;
-		currentSubStep = Step.SELECTION;
-
-		return true;
 	}
 
 	private boolean openTree(File treeFile) {
@@ -364,11 +273,9 @@ public class TreeViewer extends JPanel {
 		currentTreeIndex = -1;
 		allTrees.clear();
 
-		//ArrayList<TreeNode> lastNodeOnLevel = new ArrayList<>();
 		Map<Integer, TreeNode> lastNodeOnLevel = new HashMap<>();
 		Tree currentTree = null;
 
-		//if (!treeFile.getName().contains(".log")) return false;
 		boolean treeAdded = false;
 
 		String selectedDesc = "";
@@ -426,78 +333,23 @@ public class TreeViewer extends JPanel {
 				}
 				concept = concept.trim();
 
-				/* Get accuracy and expansion properties of current node */
-				String exploitationIndicator = "exploitation:";
-				int exploitationIdx = line.indexOf(exploitationIndicator);
-				String explorationIndicator = "exploration:";
-				int explorationIdx = line.indexOf(explorationIndicator);
-				String uctIndicator = "uct:";
-				int uctIdx = line.indexOf(uctIndicator);
-				
 				String celoeIndicator = "celoe:";
 				int celoeIdx = line.indexOf(celoeIndicator);
-				String countIndicator = "cnt:";
-				int countIdx = line.indexOf(countIndicator);
-				String accCountIndicator = "acnt:";
-				int accCountIdx = line.indexOf(accCountIndicator);
 				String accIndicator = "acc:";
 				int accIdx = line.indexOf(accIndicator);
 				String heIndicator = "he:";
 				int heIdx = line.indexOf(heIndicator);
 				
-				
-				float accuracy = Float.parseFloat(line.substring(accIdx+accIndicator.length(), line.indexOf("%, ", accIdx))) / 100;
+				float accuracy = Float.parseFloat(line.substring(accIdx+accIndicator.length(), line.indexOf("%, ", accIdx))) / 100;			
 				
 				int he = Integer.parseInt(line.substring(heIdx+heIndicator.length(), line.indexOf(", ", heIdx)));
 
-				int cnt = -1;
-				if(countIdx != -1) {
-					cnt = Integer.parseInt(line.substring(countIdx+countIndicator.length(), line.indexOf(", ", countIdx)));
-				}
-				
-				int acnt = -1;
-				if(accCountIdx != -1) {
-					acnt = Integer.parseInt(line.substring(accCountIdx+accCountIndicator.length(), line.indexOf(", ", accCountIdx)));
-				}
-				
-				float exploitation = Float.NaN;
-				if(exploitationIdx != -1) {
-					exploitation = Float.parseFloat(line.substring(exploitationIdx+exploitationIndicator.length(), line.indexOf(", ", exploitationIdx)));
-				}
-				
-				float exploration = Float.NaN;
-				if(explorationIdx != -1) {
-					exploration = Float.parseFloat(line.substring(explorationIdx+explorationIndicator.length(), line.indexOf(", ", explorationIdx)));
-				}
-				
-				float uct = Float.NaN;
-				if(uctIdx != -1) {
-					uct = Float.parseFloat(line.substring(uctIdx+uctIndicator.length(), line.indexOf("]", uctIdx)));
-				}
-				
 				float celoe = Float.NaN;
 				if(celoeIdx != -1) {
-					celoe = Float.parseFloat(line.substring(celoeIdx+celoeIndicator.length(), line.indexOf("]", celoeIdx)));
+					String value = line.substring(celoeIdx+celoeIndicator.length(), line.indexOf("]", celoeIdx));
+					if(!value.equals("NaN"))
+						celoe = Float.parseFloat(value);
 				}
-				
-
-				/* Get CELOE score if given */
-				//                String celoe_string = getNodeProperty(line, "celoe");
-				//                showCeloe = (celoe_string != null);
-				//                double celoe = 0;
-				//                if (showCeloe) {
-				//                    celoe = Double.parseDouble(celoe_string);
-				//                }
-				//
-				//                /* Give UCT score if given */
-				//                String uct_string = getNodeProperty(line, "uct");
-				//                showUct = uct_string != null;
-				//                double uct = 0;
-				//                if (showUct) {
-				//                    uct = Double.parseDouble(uct_string);
-				//                }
-
-
 
 				/* Create tree node */
 				TreeNode currentNode = new TreeNode();
@@ -505,15 +357,8 @@ public class TreeViewer extends JPanel {
 				currentNode.accuracy = accuracy;
 				currentNode.horizontalExpansion = he;
 				currentNode.level = level;
-				currentNode.exploitation = exploitation;
-				currentNode.exploration = exploration;
-				currentNode.uct = uct;
-				currentNode.accCount = acnt;
-				currentNode.count = cnt;
 				currentNode.celoe = celoe;
-				//                currentNode.celoe = celoe;
-				//                currentNode.uct = uct;
-//				if(concept.equals(selectedDesc)) {
+
 				if(selectedDescs.contains(concept)) {
 					currentNode.isSelected = true;
 				}            
@@ -542,9 +387,6 @@ public class TreeViewer extends JPanel {
 				//                if (currentNode.celoe > currentTree.maxCeloeScore) {
 				//                    currentTree.maxCeloeScore = currentNode.celoe;
 				//                }
-				if(currentNode.uct > currentTree.maxScore) {
-					currentTree.maxScore = currentNode.uct;
-				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -556,7 +398,7 @@ public class TreeViewer extends JPanel {
 			allTrees.add(currentTree);
 		}
 
-		singleStepMode = false;
+//		singleStepMode = false;
 
 		return true;
 	}
@@ -591,20 +433,20 @@ public class TreeViewer extends JPanel {
 		TreeNode lastRoot = null;
 		Set<TreeNode> lastNodes = new HashSet<TreeViewer.TreeNode>();
 		Set<String> lastConcepts = new HashSet<String>();
-		if(i>1) {
+		if(i>0) {
 			lastRoot = allTrees.get(i-1).root;
-			//        		lastNodes = lastRoot.getAllNodes();
 			lastConcepts = lastRoot.getAllConcepts();
 		}
 
 
 		currentTreeIndex = i;
-		String status = "";
-		if(i%2==0)
-			status = "expansion";
-		else
-			status = "update";
-		currentTreeLabel.setText("Tree " + (currentTreeIndex+1) + " / " + allTrees.size() + ": " + status);
+//		String status = "";
+//		if(i%2==0)
+//			status = "expansion";
+//		else
+//			status = "update";
+//		currentTreeLabel.setText("Tree " + (currentTreeIndex+1) + " / " + allTrees.size() + ": " + status);
+		currentTreeLabel.setText("Tree " + (currentTreeIndex+1) + " / " + allTrees.size());
 
 		int maxConceptsPerLayer = 0;
 		for (List<TreeNode> l : tree.layers) {
@@ -638,42 +480,17 @@ public class TreeViewer extends JPanel {
 		}
 
 		String buttonText = capString(node.concept, 30) + "\n"
-				+ String.format("acc: %.0f%%",node.accuracy*100)
+				+ "acc: " + dfPercent.format(node.accuracy)
 				+ ", he: " + node.horizontalExpansion;
-		//        if (showCeloe) {
-		//            buttonText += "\nceloe: " + String.format("%.4f", node.celoe);
-		//        }
-//		if (showUct) {		
-//			buttonText += ", uct: " + String.format("%.3f", node.uct);
-//			buttonText += "\n(" + node.count + ", " + node.accCount + ", "; 
-//			buttonText += String.format("%.3f", node.exploitation) + ", ";
-//			buttonText += String.format("%.3f", node.exploration) + ")";
-//		}
 		
 		if(node.celoe != Float.NaN) {
 			buttonText += ", cel: " + String.format("%.3f", node.celoe);
-			if(node.count != -1) {
-				buttonText += "\n(" + node.count + ", " + node.accCount + ")";
-			}
 		}
-		else if(node.uct != Float.NaN) {
-			buttonText += ", uct: " + String.format("%.3f", node.uct);
-			buttonText += "\n(" + node.count + ", " + node.accCount + ", "; 
-			buttonText += String.format("%.3f", node.exploitation) + ", ";
-			buttonText += String.format("%.3f", node.exploration) + ")";
-		}
-		
+				
 		JButton nodeButton = new JButton("<html><center>" + buttonText.replaceAll("\\n", "<br>") + "</center></html>");
 		node.x = thisX;
 		node.y = 10+node.level*150;
-		nodeButton.setBounds(node.x, node.y, 220, 70);
-		if (node.accuracy == 1) {
-			nodeButton.setForeground(Color.GREEN);
-			nodeButton.setOpaque(true);
-		} else if (node.uct == allTrees.get(currentTreeIndex).maxScore) {
-			nodeButton.setForeground(Color.RED);
-			nodeButton.setOpaque(true);            
-		}
+		nodeButton.setBounds(node.x, node.y, 230, 70);	
 
 		if(node.isSelected) {
 			nodeButton.setBackground(Color.RED);
@@ -681,7 +498,13 @@ public class TreeViewer extends JPanel {
 		}
 
 		if(!lastConcepts.isEmpty() && !lastConcepts.contains(node.concept)) {
+			nodeButton.setBackground(Color.YELLOW);
+			nodeButton.setOpaque(true);
+		}
+		
+		if (node.accuracy == 1) {
 			nodeButton.setBackground(Color.GREEN);
+			nodeButton.setForeground(Color.GREEN);
 			nodeButton.setOpaque(true);
 		}
 
@@ -724,31 +547,23 @@ public class TreeViewer extends JPanel {
 			}
 		}
 
-		if (singleStepMode) {
-			switch (currentSubStep) {
-			case SELECTION:
-				String currentConcept = steps.getJSONObject(currentTreeIndex + 1).getString("selected");
-				TreeNode selectedNode = tree.conceptNodes.get(currentConcept);
-				g2.setColor(Color.RED);
-				g2.draw(new Rectangle(selectedNode.x - 10, selectedNode.y - 10, 220, 80));
-				break;
-
-			case EXPANSION:
-				JSONArray currentChildren = steps.getJSONObject(currentTreeIndex).getJSONArray("children");
-				for (int i = 0; i < currentChildren.length(); i++) {
-					TreeNode n = tree.conceptNodes.get(currentChildren.getString(i));
-					g2.setColor(Color.RED);
-					g2.draw(new Rectangle(n.x - 10, n.y - 10, 220, 80));
-				}
-				break;
-
-			case SIMULATION:
-				break;
-
-			case BACKPROP:
-				break;
-			}
-		}
+//		switch (currentSubStep) {
+//			case SELECTION:
+//				String currentConcept = steps.getJSONObject(currentTreeIndex + 1).getString("selected");
+//				TreeNode selectedNode = tree.conceptNodes.get(currentConcept);
+//				g2.setColor(Color.RED);
+//				g2.draw(new Rectangle(selectedNode.x - 10, selectedNode.y - 10, 220, 80));
+//				break;
+//	
+//			case EXPANSION:
+//				JSONArray currentChildren = steps.getJSONObject(currentTreeIndex).getJSONArray("children");
+//				for (int i = 0; i < currentChildren.length(); i++) {
+//					TreeNode n = tree.conceptNodes.get(currentChildren.getString(i));
+//					g2.setColor(Color.RED);
+//					g2.draw(new Rectangle(n.x - 10, n.y - 10, 220, 80));
+//				}
+//				break;
+//		}
 	}
 
 	private static String capString(String s, int length) {

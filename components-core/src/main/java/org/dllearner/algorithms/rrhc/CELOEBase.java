@@ -1,8 +1,10 @@
-package org.dllearner.algorithms.layerwise;
+package org.dllearner.algorithms.rrhc;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,6 +39,7 @@ import org.dllearner.refinementoperators.LengthLimitedRefinementOperator;
 import org.dllearner.refinementoperators.OperatorInverter;
 import org.dllearner.refinementoperators.ReasoningBasedRefinementOperator;
 import org.dllearner.refinementoperators.RhoDRDown;
+import org.dllearner.utilities.Files;
 import org.dllearner.utilities.Helper;
 import org.dllearner.utilities.OWLAPIUtils;
 import org.dllearner.utilities.owl.ConceptTransformation;
@@ -55,6 +58,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Sets;
 
+
+/**
+ * this is a copy of the original CELOE for benchmarking purposes
+ * it contains basic things for all celoe extensions including the RRHC
+ *
+ * @author Yingbing Hua
+ */
 public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 
 	protected static final Logger logger = LoggerFactory.getLogger(CELOEBase.class);
@@ -163,6 +173,11 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 	 * ------------------------------------------------------------------------------------------------------------------------------
 	 */
 	
+	
+	@ConfigOption(defaultValue = "0",  description = "the step size for refining one node")
+	protected int heStep = 0;	
+	@ConfigOption(defaultValue = "true",  description = "whether to correct the horizontal expansion in the node")
+	protected boolean heCorrection = true;	
 
 	/**
 	 * ------------------------------------------------------------------------------------------------------------------------------
@@ -174,8 +189,8 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 	
 	protected String logFile = "";
 	protected String pathPfx = "";
-	protected int heStep;
-	protected boolean heCorr;	 
+	protected FileWriter logWriter;
+//	List<String> nextNodeIds = new ArrayList<String>();
 	protected static Random rnd = new Random();	
 	protected long backTime = 0;
 	protected double bestPredAcc = Double.MIN_VALUE;
@@ -241,21 +256,6 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 		return problems;
 	}
 	
-	protected String getLogPath () {
-		if(heStep == 0 && heCorr)
-			pathPfx = "original";
-		
-		if(heStep != 0 && heCorr)
-			pathPfx = "he" + String.valueOf(heStep) + "corr";
-		
-		if(heStep != 0 && !heCorr)
-			pathPfx = "he" + String.valueOf(heStep);
-		
-		String resultPath = searchTreeFile.substring(0, searchTreeFile.lastIndexOf("/"));		
-		
-		return resultPath + "/" + pathPfx + "/";
-	}
-	
 	@Override
 	public void init() throws ComponentInitException {
 		
@@ -266,8 +266,8 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 //		writeSearchTree = true;
 //		traverseWholeTree = true;
 //		newNodesLowerbound = 0
-		heStep = 1;
-		heCorr = false;
+//		heStep = 1;
+//		heCorrection = false;
 		
 		baseURI = reasoner.getBaseURI();
 		prefixes = reasoner.getPrefixes();
@@ -327,12 +327,35 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 		if (!((AbstractRefinementOperator) operator).isInitialized())
 			operator.init();		
 		
+		logFile = searchTreeFile + ".log";
+		searchTreeFile = searchTreeFile + ".tree";
+		File log = new File(logFile);	
+		if (log.getParentFile() != null) {
+			log.getAbsoluteFile().getParentFile().mkdirs();
+		}
+		Files.clearFile(log);
+		if (writeSearchTree) {						
+			File f = new File(searchTreeFile);	
+			if (f.getParentFile() != null) {
+				f.getAbsoluteFile().getParentFile().mkdirs();
+			}
+			Files.clearFile(f);
+		}
+		
+		try {
+			logWriter = new FileWriter(logFile, true);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		initialized = true;
 	}
 	
 	@Override
 	public void start() {
 	}
+	
 	
 	/*
 	 * Compute the start class in the search space from which the refinement will start.
@@ -441,7 +464,7 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 			logger.info("Algorithm stopped ("+expressionTests+" descriptions tested). " + size + " nodes in the search tree.\n");
 			String s = "Algorithm stopped ("+expressionTests+" descriptions tested). " + size + " nodes in the search tree.";
 			try {
-				saveLog(logFile, s);
+				saveLog(s, true);
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -451,7 +474,7 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
             String s = "\nAlgorithm terminated successfully (time: " + Helper.prettyPrintNanoSeconds(totalRuntimeNs) + ", "+expressionTests+" descriptions tested, "  + size + " nodes in the search tree).\n";
             	s += reasoner.toString();
         		try {
-        			saveLog(logFile, s);
+        			saveLog(s, true);
         		} catch (FileNotFoundException e) {
         			// TODO Auto-generated catch block
         			e.printStackTrace();
@@ -473,7 +496,7 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
         		
         		s += "solutions:\n" + getSolutionString();
         		try {
-        			saveLog(logFile, s);
+        			saveLog(s, true);
         		} catch (FileNotFoundException e) {
         			// TODO Auto-generated catch block
         			e.printStackTrace();
@@ -496,7 +519,7 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 			}
 
 			try {
-				saveLog(logFile, "more accurate (" + dfPercent.format(currentHighestAccuracy) + ") class expression found after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
+				saveLog("more accurate (" + dfPercent.format(currentHighestAccuracy) + ") class expression found in iteration [" + countIterations + "] after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()), true);
 //				saveLog(logFile, "more accurate (" + dfPercent.format(bestPredAcc) + ") class expression found after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
@@ -872,14 +895,43 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 	}
 	
 
-	protected void saveLog(String filename, String log) throws FileNotFoundException {		
-		long logStart = System.nanoTime(); 
-		logger.info(log);
+	/**
+	 * @return the heStep
+	 */
+	public int getHeStep() {
+		return heStep;
+	}
+
+	/**
+	 * @param heStep the heStep to set
+	 */
+	public void setHeStep(int heStep) {
+		this.heStep = heStep;
+	}
+
+	/**
+	 * @return the heCorrection
+	 */
+	public boolean isHeCorrection() {
+		return heCorrection;
+	}
+
+	/**
+	 * @param heCorrection the heCorrection to set
+	 */
+	public void setHeCorrection(boolean heCorrection) {
+		this.heCorrection = heCorrection;
+	}
+
+	protected void saveLog(String log, boolean console) throws FileNotFoundException {		
+		long logStart = System.nanoTime();
+		
+		if(console)
+			logger.info(log);
+		
 		try
 		{
-			FileWriter fw = new FileWriter(filename,true); //the true will append the new data
-			fw.write(log+"\n");
-			fw.close();
+			logWriter.write(log+"\n");
 		}
 		catch(IOException ioe)
 		{
@@ -889,5 +941,35 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 		logTime += (logEnd - logStart);
 	}
 
+//	protected void printSelectedNodes() {
+//		try {
+//			saveLog("\nselected nodes in each iteration:", false);
+//		} catch (FileNotFoundException e1) {
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//		}
+//		
+//		for(String id : nextNodeIds) {
+//			try {
+//				saveLog(id, false);
+//			} catch (FileNotFoundException e1) {
+//				// TODO Auto-generated catch block
+//				e1.printStackTrace();
+//			}
+//		}			
+//	}
+	
+	protected void printRetrievalDetails () {
+		String ret = "\n";
+		ret += "retrieval(" + reasoner.getNrOfRetrievals() + ") = ref(" +  AbstractReasonerComponent.retCountRef + ") + acc(" + AbstractReasonerComponent.retCountAcc + ") = " 
+				+ (AbstractReasonerComponent.retCountRef + AbstractReasonerComponent.retCountAcc + "\n");
+		ret += "avg length: " + AbstractReasonerComponent.allLength / (double) reasoner.getNrOfRetrievals();
+		try {
+			saveLog(ret, false);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 }

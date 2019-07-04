@@ -114,4 +114,13 @@ public class OEHeuristicRuntime extends AbstractHeuristic{
 		this.startNodeBonus = startNodeBonus;
 	}
 
+	public String toString () {
+		String s = " - heuristic: " + "celoe" + "\n";
+		s += "\t- expansionPenalty: " + expansionPenaltyFactor + "\n";
+		s += "\t- refinementPenalty: " + nodeRefinementPenalty + "\n";
+		s += "\t- gainBonus: " + gainBonusFactor + "\n";
+		s += "\t- startBonus: " + startNodeBonus + "\n";
+		
+		return s;		
+	}
 }

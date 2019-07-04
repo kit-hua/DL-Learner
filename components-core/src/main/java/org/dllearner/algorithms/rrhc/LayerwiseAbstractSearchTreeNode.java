@@ -1,5 +1,6 @@
-package org.dllearner.algorithms.layerwise;
+package org.dllearner.algorithms.rrhc;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -14,15 +15,24 @@ import java.util.TreeSet;
 import org.dllearner.utilities.datastructures.SearchTreeNode;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 
+/**
+ * This is a copy of org.dllearner.core.AbstractSearchTreeNode for the sake of layerwise traversing of the search treee
+ * It replaces the global priority queue with individual queues of each node
+ * TODO: shall be refactored with a new architecture instead of duplicating the code
+ * 
+ * @author Yingbing Hua
+ *
+ */
 public abstract class LayerwiseAbstractSearchTreeNode <T extends LayerwiseAbstractSearchTreeNode> implements SearchTreeNode {
 
 	protected Set< LayerwiseAbstractSearchTree<T> > trees = new HashSet<>();
 	
 	protected T parent;
-//	protected List<T> children = new LinkedList<>();
 	protected Comparator<T> sortOrderComp;
 	protected NavigableSet<T> children;
 	private int depth = 0; //depth of the node in a tree
+	
+	protected String id = "";
 	
 	public LayerwiseAbstractSearchTreeNode(Comparator<T> comparator) {
 		// TODO Auto-generated constructor stub
@@ -38,8 +48,9 @@ public abstract class LayerwiseAbstractSearchTreeNode <T extends LayerwiseAbstra
 	 * @param node the child node
 	 */
 	public void addChild(T node) {
-		node.setParent(this);
-		children.add(node);
+		node.setParent(this);				
+		node.setId(this.getId() + "-" + String.valueOf(children.size()+1));
+		children.add(node);		
 		node.setDepth(this.depth+1);
 		node.notifyTrees(this.trees);
 	}
@@ -92,13 +103,10 @@ public abstract class LayerwiseAbstractSearchTreeNode <T extends LayerwiseAbstra
 		return parent;
 	}
 
-	/**
-	 * @return the children
-	 */
-	@Override
 	public Collection<T> getChildren() {
 		return children;
 	}
+	
 	
 	/**
 	 * @return an iterator over the elements in this search tree in descending comparison order
@@ -128,6 +136,22 @@ public abstract class LayerwiseAbstractSearchTreeNode <T extends LayerwiseAbstra
 
  	public int getDepth() {
 		return this.depth;
+	}
+
+
+	/**
+	 * @return the id
+	 */
+	public String getId() {
+		return id;
+	}
+
+
+	/**
+	 * @param id the id to set
+	 */
+	public void setId(String id) {
+		this.id = id;
 	}
 
 }

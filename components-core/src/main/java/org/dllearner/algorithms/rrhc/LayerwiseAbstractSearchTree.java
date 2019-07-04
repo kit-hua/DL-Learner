@@ -1,4 +1,4 @@
-package org.dllearner.algorithms.layerwise;
+package org.dllearner.algorithms.rrhc;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -8,11 +8,18 @@ import java.util.Set;
 import java.util.SortedSet;
 
 
+/**
+ * This is a copy of org.dllearner.utilities.datastructures.AbstractSearchTree for the sake of layerwise traversing of the search treee
+ * It replaces the global priority queue with individual queues of each node
+ * TODO: shall be refactored with a new architecture instead of duplicating the code
+ * 
+ * @author Yingbing Hua
+ *
+ */
 public class LayerwiseAbstractSearchTree  <T extends LayerwiseAbstractSearchTreeNode> {
 
 	// all nodes in the search tree (used for selecting most promising node)
 //	protected NavigableSet<T> nodes;
-//	protected HashSet<T> nodes;
 	
 	// the sort order on the set
 	protected Comparator<T> sortOrderComp;
@@ -88,6 +95,7 @@ public class LayerwiseAbstractSearchTree  <T extends LayerwiseAbstractSearchTree
 			throw new Error("Tree Root already set");
 		}
 		this.root = node;
+		node.setId("0");
 		node.notifyTree(this);
 	}
 
@@ -96,17 +104,7 @@ public class LayerwiseAbstractSearchTree  <T extends LayerwiseAbstractSearchTree
 	 * @param node the node
 	 */
 	public final void updatePrepare(T node) {
-		
-//		Collection<T> children = (Collection<T>)node.getChildren();
-		// update the node in the global list
-//		for (T child : (Collection<T>)node.getChildren()) {
-//		for (T child : children) {
-//			System.out.println(child.toString());
-//			if (allowedNode(child))
-//				updatePrepare(child);
-//		}
-//		nodes.remove(node);
-		
+				
 		if(node.parent != null) {
 			// update the node in its parent's children list
 			T parent = (T) node.getParent();
@@ -118,59 +116,13 @@ public class LayerwiseAbstractSearchTree  <T extends LayerwiseAbstractSearchTree
 	 * must be called after modifying a node, to support immutable set element pattern
 	 */
 	public final void updateDone(T node) {
-		
-		// update the node in the global list
-//		if (allowedNode(node)) {
-//			nodes.add(node);
-//			for (T child : (Collection<T>)node.getChildren()) {
-//				updateDone(child);
-//			}
-//		}
-		
+				
 		// update the node in its parent's children list
 		if(node.parent != null) {
 			T parent = (T) node.getParent();
 			parent.children.add(node);
 		}
 	}
-
-	/**
-	 * @return an iterator over the elements in this search tree in descending comparison order
-	 */
-//	public Iterator<T> descendingIterator() {
-//		return nodes.descendingIterator();
-////		return null;
-//	}
-//
-//	/**
-//	 * @return a set of the nodes in the search tree ordered in descending comparison order
-//	 */
-//	public SortedSet<T> descendingSet() {
-//		return nodes.descendingSet();
-////		return null;
-//	}
-//
-//	/**
-//	 * @return best node according to comparator
-//	 */
-//	public T best() {
-//		return nodes.last();
-////		return null;
-//	}
-//
-//	/**
-//	 * @return the underlying set of all tree nodes
-//	 */
-//	public Set<T> getNodeSet() {
-//		return nodes;
-//	}
-
-	/**
-	 * @return the tree size
-	 */
-//	public int size() {
-//		return nodes.size();
-//	}
 
 	/**
 	 * @return the tree root node
@@ -188,15 +140,8 @@ public class LayerwiseAbstractSearchTree  <T extends LayerwiseAbstractSearchTree
  	}
 
  	
-//    public boolean update(T e) {
-//        if (nodes.remove(e)) {
-//        		if(nodes.add(e))
-//        			return true;
-//    			else
-//    				return false;
-////            return nodes.add(e);
-//        } else { 
-//            return false;
-//        }
-//     }
+    public void update(T e) {	
+    		updatePrepare(e);
+    		updateDone(e);
+     }
 }

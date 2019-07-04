@@ -32,6 +32,7 @@ import org.dllearner.reasoning.ReasonerType;
 import org.dllearner.utilities.Helper;
 import org.dllearner.utilities.OWLAPIUtils;
 import org.dllearner.utilities.datastructures.SortedSetTuple;
+import org.dllearner.utilities.owl.OWLClassExpressionUtils;
 import org.semanticweb.owlapi.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,6 +142,11 @@ public abstract class AbstractReasonerComponent extends AbstractComponent implem
 	 */
 	@ConfigOption(description = "the underlying knowledge sources", required = true)
 	protected Set<KnowledgeSource> sources;
+	
+	public static long allLength = 0;
+	public static long retCountMat = 0;
+	public static long retCountRef = 0;
+	public static long retCountAcc = 0;
 
     public AbstractReasonerComponent(){
 
@@ -424,6 +430,26 @@ public abstract class AbstractReasonerComponent extends AbstractComponent implem
 		if(logger.isTraceEnabled()) {
 			logger.trace("reasoner query getIndividuals: " + concept + " " + result);
 		}
+//		System.out.println(concept);
+		allLength += OWLClassExpressionUtils.getLength(concept);
+		StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+		
+		for(int i = 0; i < stackTraceElements.length; i++) {
+			if(stackTraceElements[i].getMethodName().contains("materialize")) {
+				retCountMat++;
+				break;
+			}
+			if(stackTraceElements[i].getMethodName().contains("getAccuracyOrTooWeak2")) {
+				retCountAcc++;
+				break;
+			}
+			if(stackTraceElements[i].getMethodName().contains("refine")) {
+				retCountRef++;
+				break;
+			}
+		}
+//			System.out.println(stackTraceElements[i].getClassName() + ":" + stackTraceElements[i].getMethodName());
+//		System.out.println(stackTraceElements[stackTraceElements.length-2].getClassName() + ":" + stackTraceElements[stackTraceElements.length-2].getMethodName());
 		return result;
 	}
 
