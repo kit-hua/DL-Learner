@@ -1099,18 +1099,29 @@ public class ClosedWorldReasoner extends AbstractReasonerComponent {
                 for (OWLIndividual ind : inds) {
                     // stop inner loop when nr of fillers is reached
                     if (nrOfFillers >= number) {
-                        returnSet.add(entry.getKey());
+//                        returnSet.add(entry.getKey());
                         break;
                     }
                     // early abort when too many instance checks failed, i.e. there are not enough remaining candidates
-                    if (inds.size() - index < number) {
+//                    if (inds.size() - index < number) {
+                    /**
+                     * @Hua: that was a bug
+                     * we want to check whether the number of remaining untested individuals is smaller than the number of desired number of fillers
+                     */
+                    if (inds.size() - index < number - nrOfFillers) {
                         break;
                     }
+                   
                     if (targetSet.contains(ind)) {
                         nrOfFillers++;
                     }
                     index++;
                 }
+                
+                if(nrOfFillers >= number) {
+                		returnSet.add(entry.getKey());
+                }
+                	
             }
 
             return returnSet;
