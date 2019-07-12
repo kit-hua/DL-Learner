@@ -21,6 +21,7 @@ package org.dllearner.algorithms.rrhc;
 import org.dllearner.core.*;
 import org.dllearner.core.config.ConfigOption;
 import org.dllearner.learningproblems.ClassLearningProblem;
+import org.dllearner.learningproblems.PosNegLP;
 import org.dllearner.utilities.*;
 import org.dllearner.utilities.owl.*;
 import org.semanticweb.owlapi.model.*;
@@ -68,6 +69,8 @@ public class RRHC extends CELOEBase implements Cloneable{
 	/**
 	 * --------------------------------------------------------------------------------------------------------------------------------
 	 */
+	
+	private boolean aborted = false;
 
 	public RRHC() {}
 
@@ -119,7 +122,14 @@ public class RRHC extends CELOEBase implements Cloneable{
 			e.printStackTrace();
 		}
  		LayerwiseSearchTreeNode root = addNode(startClass, null);
- 		if (writeSearchTree) {
+ 		
+ 		if(root == null) {
+ 			logger.error("The start class specified by the user is invalid: it does not cover all positive examples");
+ 			this.stop();
+ 			aborted = true;
+ 		}
+ 		
+ 		if (!aborted && writeSearchTree) {
 			writeSearchTree(root);
 		}
  		currentNode = root;
@@ -156,9 +166,10 @@ public class RRHC extends CELOEBase implements Cloneable{
 				}
 				
 				TreeSet<OWLClassExpression> refinements = refineNode(nextNode);
+//				System.out.println("refining node: " + nextNode.toString());
 				while(!refinements.isEmpty() && !terminationCriteriaSatisfied()) {
 					// pick element from set
-					OWLClassExpression refinement = refinements.pollFirst();
+					OWLClassExpression refinement = refinements.pollFirst();					
 
 					// get length of class expression
 					int length = OWLClassExpressionUtils.getLength(refinement);
@@ -198,32 +209,35 @@ public class RRHC extends CELOEBase implements Cloneable{
 			showIfBetterSolutionsFound();						
 		}
 		
-		if(singleSuggestionMode) {
+		if(!aborted && singleSuggestionMode) {
 			bestEvaluatedDescriptions.add(bestDescription, bestAccuracy, learningProblem);
 		}
-								
-		// print some stats
-		printAlgorithmRunStats(searchTree.size());
-		
-		logger.info("writing tree strcuture and selected nodes to log file.");
-		
-		// print tree structure
-		printTreeStructure();
-		
-		// print node ids:
-		printSelectedNodes(false);
-		
-		// print retrieval details:
-		printRetrievalDetails();
-		
-		try {
-			logWriter.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+						
+		if(!aborted) {
+			// print some stats
+			printAlgorithmRunStats(searchTree.size());
+			
+			logger.info("writing tree strcuture and selected nodes to log file.");
+			
+			// print tree structure
+			printTreeStructure();
+			
+			// print node ids:
+			printSelectedNodes(false);
+			
+			// print retrieval details:
+			printRetrievalDetails();
+			
+			try {
+				logWriter.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}					
 		}
-				
+		
 		isRunning = false;
+		
 	}
 	
 	protected void printSelectedNodes(boolean verbose) {
@@ -391,6 +405,7 @@ public class RRHC extends CELOEBase implements Cloneable{
 	 */
 	protected LayerwiseSearchTreeNode addNode(OWLClassExpression description, LayerwiseSearchTreeNode parentNode) {
 		
+//		System.out.println("adding node: first checking allowed");
 		// redundancy check (return if redundant)
 		boolean nonRedundant = descriptions.add(description);
 		if(!nonRedundant) {
@@ -399,7 +414,7 @@ public class RRHC extends CELOEBase implements Cloneable{
 		
 		// check whether the class expression is allowed
 		if(parentNode == null) {
-			if(!isDescriptionAllowed(description, null)) {
+			if(!isDescriptionAllowed(description, null)) {				
 				return null;
 			}					
 		}
@@ -408,6 +423,43 @@ public class RRHC extends CELOEBase implements Cloneable{
 				return null;
 			}
 		}
+		
+//		if(learningProblem instanceof PosNegLP) {
+//			OWLClassExpressionDisjunctionCounter counter = new OWLClassExpressionDisjunctionCounter();
+//			int numPos = ((PosNegLP) learningProblem).getPositiveExamples().size();
+//			int numDisj = counter.getNumDisjunctions(description);
+//			
+//			System.out.println(numPos + ", " + numDisj);
+//		}
+		
+		// Disallow descriptions with unnecessary disjunctions
+		if(learningProblem instanceof PosNegLP) {
+			
+			OWLClassExpressionDisjunctionCounter counter = new OWLClassExpressionDisjunctionCounter();
+			int numPos = ((PosNegLP) learningProblem).getPositiveExamples().size();
+			int numDisj = counter.getNumDisjunctions(description);
+			
+//			System.out.println("\ntesting " + description + ": " + numDisj + ", " + numPos);
+			
+			// if the description has more disjunctions than necessary, i.e. number of positive examples
+			if(numDisj > numPos-1) {
+//				System.out.println("[" + description + "] disallowed");
+				return null;
+			}
+			
+			if(parentNode != null) {
+				double parentAccuracy = learningProblem.getAccuracyOrTooWeak(parentNode.getExpression(), noise);
+//				System.out.println("parent " + parentNode.getExpression() + ": " + parentAccuracy);
+				// if the parent is already correct (1.0 accuracy), then the new description shall not use more disjunctions
+				if(parentAccuracy == 1.0) {
+					int numDisjParent = counter.getNumDisjunctions(parentNode.getExpression());
+					if(numDisj > numDisjParent) {
+//						System.out.println("[" + description + "] disallowed");
+						return null;
+					}					
+				}	
+			}			
+		}		
 		
 		// quality of class expression (return if too weak)
 		double accuracy = learningProblem.getAccuracyOrTooWeak(description, noise);
@@ -457,43 +509,46 @@ public class RRHC extends CELOEBase implements Cloneable{
 		}
 		
 		long rewriteStart = System.nanoTime();
-		if(isCandidate) {
-			//TODO: rewrite forte/uncle_small will produce "male and married only nothing" from "male and married max 0 thing"
-			//      and the reasoner will have different instance retrieval results based on this
-			OWLClassExpression niceDescription = rewrite(node.getExpression());
-//			rewriteCount++;
-
-			if(niceDescription.equals(classToDescribe)) {
-				return null;
-			}
-			
-			if(!isDescriptionAllowed(niceDescription, node.getExpression())) {
-				return null;
-			}
-			
-			// another test: none of the other suggested descriptions should be
-			// a subdescription of this one unless accuracy is different
-			// => comment: on the one hand, this appears to be too strict, because once A is a solution then everything containing
-			// A is not a candidate; on the other hand this suppresses many meaningless extensions of A
-			boolean shorterDescriptionExists = false;
-			if(forceMutualDifference) {
-				for(EvaluatedDescription<? extends Score> ed : bestEvaluatedDescriptions.getSet()) {
-					if(Math.abs(ed.getAccuracy()-accuracy) <= 0.00001 && ConceptTransformation.isSubdescription(niceDescription, ed.getDescription())) {
-						shorterDescriptionExists = true;
-						break;
-					}
-				}
-			}
-			
-			if(!shorterDescriptionExists) {
-				if(!filterFollowsFromKB || !((ClassLearningProblem)learningProblem).followsFromKB(niceDescription)) {
-					bestEvaluatedDescriptions.add(niceDescription, accuracy, learningProblem);
-				}
-			}
-		}
-		long rewriteEnd = System.nanoTime();
+//		if(isCandidate) {
+//			//TODO: rewrite forte/uncle_small will produce "male and married only nothing" from "male and married max 0 thing"
+//			//      and the reasoner will have different instance retrieval results based on this
+//			System.out.println("node: " + node);
+//			OWLClassExpression niceDescription = rewrite(node.getExpression());
+////			rewriteCount++;
+////			System.out.println("nice: " + niceDescription);
+//
+//			if(niceDescription.equals(classToDescribe)) {
+//				return null;
+//			}
+//			
+//			if(!isDescriptionAllowed(niceDescription, node.getExpression())) {
+//				return null;
+//			}
+//			
+//			// another test: none of the other suggested descriptions should be
+//			// a subdescription of this one unless accuracy is different
+//			// => comment: on the one hand, this appears to be too strict, because once A is a solution then everything containing
+//			// A is not a candidate; on the other hand this suppresses many meaningless extensions of A
+//			boolean shorterDescriptionExists = false;
+//			if(forceMutualDifference) {
+//				for(EvaluatedDescription<? extends Score> ed : bestEvaluatedDescriptions.getSet()) {
+//					if(Math.abs(ed.getAccuracy()-accuracy) <= 0.00001 && ConceptTransformation.isSubdescription(niceDescription, ed.getDescription())) {
+//						shorterDescriptionExists = true;
+//						break;
+//					}
+//				}
+//			}
+//			
+//			if(!shorterDescriptionExists) {
+//				if(!filterFollowsFromKB || !((ClassLearningProblem)learningProblem).followsFromKB(niceDescription)) {
+//					bestEvaluatedDescriptions.add(niceDescription, accuracy, learningProblem);
+//				}
+//			}
+//		}
+		long rewriteEnd = System.nanoTime();		
 		rewriteTime += (rewriteEnd - rewriteStart);
 		
+		bestEvaluatedDescriptions.add(node.getExpression(), accuracy, learningProblem);
 		return node;
 	}
 	

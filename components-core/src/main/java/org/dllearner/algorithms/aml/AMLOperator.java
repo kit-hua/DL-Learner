@@ -98,6 +98,12 @@ public class AMLOperator extends RefinementOperatorAdapter implements Component,
 	private int topRefinementsLength = 0;
 	private Map<OWLClassExpression, Integer> topARefinementsLength = new TreeMap<>();
 	// M is finite and this value is the maximum length of any value in M
+	/**
+	 * @Hua: why 4 not 3?
+	 * although it is good to use 4 to be able to increase the "length" of data some values of from 1 to 2
+	 * however, we can not have data property restrictions to have length more than 2, 
+	 * which will cause computeM() in trouble
+	 */
 	private int mMaxLength = 4;
 
 	// the sets M_\top and M_A

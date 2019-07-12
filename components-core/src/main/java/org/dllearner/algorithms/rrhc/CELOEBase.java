@@ -122,7 +122,7 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 	protected double maxDepth = 7;
 
 	@ConfigOption(defaultValue="false", description="algorithm will terminate immediately when a correct definition is found")
-	protected boolean stopOnFirstDefinition = true;
+	protected boolean stopOnFirstDefinition = false;
 		
 	@ConfigOption(defaultValue = "false",  description = "whether to try and refine solutions which already have accuracy value of 1")
 	protected boolean expandAccuracy100Nodes = false;	
@@ -137,6 +137,7 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 	// all descriptions in the search tree plus those which were too weak (for fast redundancy check)
 	protected TreeSet<OWLClassExpression> descriptions;
 	protected OWLClassExpression bestDescription;
+	protected OWLClassExpression lastBestDescription = startClass;
 	protected double bestAccuracy = Double.MIN_VALUE;
 	protected OWLClass classToDescribe;
 	// examples are either 1.) instances of the class to describe 2.) positive examples
@@ -505,7 +506,8 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 	}
 	
 	protected void showIfBetterSolutionsFound() {
-		if(!singleSuggestionMode && bestEvaluatedDescriptions.getBestAccuracy() > currentHighestAccuracy) {
+		if( (!singleSuggestionMode && bestEvaluatedDescriptions.getBestAccuracy() >= currentHighestAccuracy)) {
+						
 			currentHighestAccuracy = bestEvaluatedDescriptions.getBestAccuracy();
 			expressionTestCountLastImprovement = expressionTests;
 			timeLastImprovement = System.nanoTime();
@@ -517,14 +519,23 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 				runtimeVsBestScore.put(getCurrentRuntimeInMilliSeconds(), currentHighestAccuracy);
 //				runtimeVsBestScore.put(getCurrentRuntimeInMilliSeconds(), bestPredAcc);
 			}
-
-			try {
-				saveLog("more accurate (" + dfPercent.format(currentHighestAccuracy) + ") class expression found in iteration [" + countIterations + "] after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()), true);
-//				saveLog(logFile, "more accurate (" + dfPercent.format(bestPredAcc) + ") class expression found after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			
+			if (lastBestDescription == null) {
+				lastBestDescription = bestEvaluatedDescriptions.getBest().getDescription();
 			}
+				
+			if(lastBestDescription!= null && !lastBestDescription.equals(bestEvaluatedDescriptions.getBest().getDescription())){
+				try {
+					saveLog("more accurate (" + dfPercent.format(currentHighestAccuracy) + ") class expression found in iteration [" + countIterations + "] after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()), true);
+//					saveLog(logFile, "more accurate (" + dfPercent.format(bestPredAcc) + ") class expression found after " + durationStr + ": " + descriptionToString(bestEvaluatedDescriptions.getBest().getDescription()));
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				lastBestDescription = bestEvaluatedDescriptions.getBest().getDescription();				
+			}
+			
 		}
 	}
 	

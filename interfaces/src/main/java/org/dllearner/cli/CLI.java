@@ -230,7 +230,7 @@ public class CLI extends CLIBase2 {
 		
 		List<File> confs = getConfigs(file, true);
 		// duplicate the first conf since the first one is always slow
-		confs.add(0, confs.get(0));
+		//confs.add(0, confs.get(0));
 
 		for(File conf : confs) {
 			System.out.println("============================ " + conf.getName() + " STARTS ============================");
