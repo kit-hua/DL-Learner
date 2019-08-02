@@ -202,18 +202,6 @@
                                     <mainClass>org.dllearner.cli.CLI</mainClass>
                                     <name>cli</name>
                                 </program>
-                                <program>
-                                    <mainClass>org.dllearner.cli.unife.CLILEAP</mainClass>
-                                    <name>clileap</name>
-                                </program>
-                                <program>
-                                    <mainClass>org.dllearner.cli.Enrichment</mainClass>
-                                    <name>enrichment</name>
-                                </program>
-                                <program>
-                                    <mainClass>org.dllearner.cli.SemKernelCLI</mainClass>
-                                    <name>semkernel</name>
-                                </program>
                                 <!-- <program> <mainClass>org.dllearner.gui.StartGUI</mainClass> 
                                 <name>gui</name> </program> <program> <mainClass>org.dllearner.cli.QuickStart</mainClass> 
                                 <name>quickstart</name> </program> <program> <mainClass>org.dllearner.server.DLLearnerWS</mainClass> 
@@ -323,10 +311,6 @@
                                 <program>
                                     <mainClass>org.dllearner.cli.CLI</mainClass>
                                     <name>dl-learner-cli</name>
-                                </program>
-                                <program>
-                                    <mainClass>org.dllearner.cli.Enrichment</mainClass>
-                                    <name>dl-learner-enrichment</name>
                                 </program>
                                 <!-- <program> <mainClass>org.dllearner.gui.StartGUI</mainClass> 
                                 <name>gui</name> </program> <program> <mainClass>org.dllearner.cli.QuickStart</mainClass> 

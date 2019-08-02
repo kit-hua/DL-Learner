@@ -126,6 +126,10 @@
 									<name>cli</name>
 								</program>
 								<program>
+									<mainClass>aml.learner.cli.AMLLearner</mainClass>
+									<name>amllearner</name>
+								</program>
+								<program>
 									<mainClass>org.dllearner.cli.Enrichment</mainClass>
 									<name>enrichment</name>
 								</program>
@@ -192,6 +196,10 @@
 								<program>
 									<mainClass>org.dllearner.cli.CLI</mainClass>
 									<name>dl-learner-cli</name>
+								</program>
+								<program>
+									<mainClass>aml.learner.cli.AMLLearner</mainClass>
+									<name>amllearner</name>
 								</program>
 								<program>
 									<mainClass>org.dllearner.cli.Enrichment</mainClass>
@@ -290,10 +298,20 @@
 					<schemaDirectory>src/main/xsd</schemaDirectory>
 				</configuration>
 			</plugin>
-			<plugin>
+			<!-- <plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>tomcat-maven-plugin</artifactId>
-			</plugin>
+			</plugin> -->			
+	        <plugin>
+	          <groupId>org.apache.tomcat.maven</groupId>
+	          <artifactId>tomcat6-maven-plugin</artifactId>
+	          <version>2.2</version>
+	        </plugin>
+	        <plugin>
+	          <groupId>org.apache.tomcat.maven</groupId>
+	          <artifactId>tomcat7-maven-plugin</artifactId>
+	          <version>2.2</version>
+	        </plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
@@ -420,6 +438,56 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-beans</artifactId>
+		</dependency>
+		
+		<!-- AML Dependencies -->	
+		
+	  	<dependency>
+	      	<groupId>org.eclipse.emf</groupId>
+	      	<artifactId>org.eclipse.emf.ecore</artifactId>
+	     	<version>2.11.1-v20150805-0538</version>
+	    	</dependency>
+	      
+	    <dependency>
+		    	<groupId>org.eclipse.emf</groupId>
+		    	<artifactId>org.eclipse.emf.common</artifactId>
+		    	<version>2.10.1-v20150123-0348</version>
+	    </dependency>
+	    
+	    <dependency>
+		    	<groupId>org.eclipse.emf</groupId>
+		    	<artifactId>org.eclipse.emf.ecore.xmi</artifactId>
+		    	<version>2.11.1-v20150805-0538</version>
+	    </dependency>
+
+		<dependency>
+			<groupId>AutomationML</groupId>
+			<artifactId>aml_models</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>AutomationML</groupId>
+			<artifactId>aml_io</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>AutomationML</groupId>
+			<artifactId>aml_owl</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>AutomationML</groupId>
+			<artifactId>aml_learning</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>AutomationML</groupId>
+			<artifactId>aml_query</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 

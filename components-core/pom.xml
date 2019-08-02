@@ -128,6 +128,21 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Uncomment this when the junits are independent of a runtime directory -->
+					<!--<includes> -->
+					<!--<include>org/dllearner/test/junit/*</include> -->
+					<!--</includes> -->
+					<excludes>
+						<exclude>org/dllearner/test/*</exclude>
+						<exclude>org/dllearner/test/junit/TestOntologies.java</exclude>
+						<exclude>org/dllearner/test/junit/PropertyLearningTest.java</exclude>
+						<exclude>org/dllearner/test/junit/DisjointClassesLearningTest.java</exclude>
+						<!--This line excludes inner classes -->
+						<exclude>**/*$*</exclude>
+					</excludes>
+					<argLine>-Dlog4j.configuration=log4j.properties</argLine>
+				</configuration>
 				<!--<configuration>-->
 					<!--&lt;!&ndash; Uncomment this when the junits are independent of a runtime directory &ndash;&gt;-->
 					<!--&lt;!&ndash;<includes> &ndash;&gt;-->
@@ -158,13 +173,13 @@
 				</executions>
 			</plugin>
 
-			<plugin>
+			<!-- <plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-site-plugin</artifactId>
 				<configuration>
 					<skipDeploy>true</skipDeploy>
 				</configuration>
-			</plugin>
+			</plugin> -->
 			
 			<plugin>
 				<!-- Deploy the web site -->

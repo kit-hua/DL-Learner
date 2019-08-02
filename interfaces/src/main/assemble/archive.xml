@@ -70,6 +70,15 @@
 			</includes>
 			<fileMode>0644</fileMode>
 		</fileSet>
+		<fileSet>
+			<directory>../../aml_models</directory>
+			<outputDirectory>examples</outputDirectory>
+			<excludes>
+				<exclude>
+					**/qtl/
+				</exclude>
+			</excludes>
+		</fileSet>
 
 	</fileSets>
 
