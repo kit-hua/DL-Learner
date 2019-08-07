@@ -223,10 +223,10 @@ public class RRHC extends CELOEBase implements Cloneable{
 			printTreeStructure();
 			
 			// print node ids:
-			printSelectedNodes(false);
+//			printSelectedNodes(false);
 			
 			// print retrieval details:
-			printRetrievalDetails();
+//			printRetrievalDetails();
 			
 			try {
 				logWriter.close();

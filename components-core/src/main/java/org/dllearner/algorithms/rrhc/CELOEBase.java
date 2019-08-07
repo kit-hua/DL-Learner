@@ -15,6 +15,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.dllearner.core.AbstractCELA;
@@ -195,7 +196,9 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 	protected static Random rnd = new Random();	
 	protected long backTime = 0;
 	protected double bestPredAcc = Double.MIN_VALUE;
-	protected double bestNegOnlyAcc = Double.MIN_VALUE;	
+	protected double bestNegOnlyAcc = Double.MIN_VALUE;		
+
+	protected BlockingQueue<String> externLogger;
 	/**
 	 * --------------------------------------------------------------------------------------------------------------------------------
 	 * ------------------------------------------------------------------------------------------------------------------------------
@@ -948,6 +951,13 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 		{
 			System.err.println("IOException: " + ioe.getMessage());
 		}
+		
+		try {
+			this.externLogger.put(log);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		long logEnd = System.nanoTime();
 		logTime += (logEnd - logStart);
 	}
@@ -981,6 +991,10 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	public void setLogQueue(BlockingQueue<String> queue) {
+		this.externLogger = queue;
 	}
 	
 }
