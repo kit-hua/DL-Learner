@@ -464,48 +464,42 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 	}
 	
 	protected void printAlgorithmRunStats(int size) {
-		if (stop) {
-			logger.info("Algorithm stopped ("+expressionTests+" descriptions tested). " + size + " nodes in the search tree.\n");
-			String s = "Algorithm stopped ("+expressionTests+" descriptions tested). " + size + " nodes in the search tree.";
-			try {
-				saveLog(s, true);
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} else {
-			totalRuntimeNs = System.nanoTime()-nanoStartTime;
-            String s = "\nAlgorithm terminated successfully (time: " + Helper.prettyPrintNanoSeconds(totalRuntimeNs) + ", "+expressionTests+" descriptions tested, "  + size + " nodes in the search tree).\n";
-            	s += reasoner.toString();
-        		try {
-        			saveLog(s, true);
-        		} catch (FileNotFoundException e) {
-        			// TODO Auto-generated catch block
-        			e.printStackTrace();
-        		}
-            	
-            	s = "Iterations: " + countIterations + "\n";
-        		s += "Times CELOE undecided: " + timesCeloeUndecided + "\n";
-        		s += "Times CELOE decided: " + timesCeloeDecided + "\n";
-        		s += "% CELOE undecided: "+ ((double)timesCeloeUndecided)/((double)timesCeloeUndecided+timesCeloeDecided) + "\n";
-        		s += "Nodes in search tree: " + size + "\n";
-        		s += "Expressions tested: " + expressionTests + "\n";
-        		s += "time: " + Helper.prettyPrintNanoSeconds(System.nanoTime() - nanoStartTime - logTime) + " (log: " + Helper.prettyPrintNanoSeconds(logTime) + " )\n";
+		totalRuntimeNs = System.nanoTime()-nanoStartTime;
+		String s = "";
+		if (stop) {			
+			s += "Algorithm stopped ("+expressionTests+" descriptions tested). " + size + " nodes in the search tree.";			
+		} else {			
+            s += "\nAlgorithm terminated successfully (time: " + Helper.prettyPrintNanoSeconds(totalRuntimeNs) + ", "+expressionTests+" descriptions tested, "  + size + " nodes in the search tree).\n";
+		}
+    	s += reasoner.toString();
+		try {
+			saveLog(s, true);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	s = "Iterations: " + countIterations + "\n";
+		s += "Times CELOE undecided: " + timesCeloeUndecided + "\n";
+		s += "Times CELOE decided: " + timesCeloeDecided + "\n";
+		s += "% CELOE undecided: "+ ((double)timesCeloeUndecided)/((double)timesCeloeUndecided+timesCeloeDecided) + "\n";
+		s += "Nodes in search tree: " + size + "\n";
+		s += "Expressions tested: " + expressionTests + "\n";
+		s += "time: " + Helper.prettyPrintNanoSeconds(System.nanoTime() - nanoStartTime - logTime) + " (log: " + Helper.prettyPrintNanoSeconds(logTime) + " )\n";
 //        		s += " - log time: " + Helper.prettyPrintNanoSeconds(logTime) + "\n";
-        		s += " - refinement time: " + Helper.prettyPrintNanoSeconds(refineTime) + "\n";        		
-        		s += " - tree time: " + Helper.prettyPrintNanoSeconds(treeTime) + "\n";
-        		s += " - rewrite time: " + Helper.prettyPrintNanoSeconds(rewriteTime) + "\n";
-        		s += " - select time: " + Helper.prettyPrintNanoSeconds(selectTime) + "\n";
-        		s += " - back time: " + Helper.prettyPrintNanoSeconds(backTime) + "\n\n";
-        		
-        		s += "solutions:\n" + getSolutionString();
-        		try {
-        			saveLog(s, true);
-        		} catch (FileNotFoundException e) {
-        			// TODO Auto-generated catch block
-        			e.printStackTrace();
-        		}
- 		}
+		s += " - refinement time: " + Helper.prettyPrintNanoSeconds(refineTime) + "\n";        		
+		s += " - tree time: " + Helper.prettyPrintNanoSeconds(treeTime) + "\n";
+		s += " - rewrite time: " + Helper.prettyPrintNanoSeconds(rewriteTime) + "\n";
+		s += " - select time: " + Helper.prettyPrintNanoSeconds(selectTime) + "\n";
+		s += " - back time: " + Helper.prettyPrintNanoSeconds(backTime) + "\n\n";
+		
+		s += "solutions:\n" + getSolutionString();
+		try {
+			saveLog(s, true);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 		
 	}
 	
 	protected void showIfBetterSolutionsFound() {
