@@ -124,11 +124,7 @@
 								<program>
 									<mainClass>org.dllearner.cli.CLI</mainClass>
 									<name>cli</name>
-								</program>
-								<program>
-									<mainClass>aml.learner.cli.AMLLearner</mainClass>
-									<name>amllearner</name>
-								</program>
+								</program>								
 								<program>
 									<mainClass>org.dllearner.cli.Enrichment</mainClass>
 									<name>enrichment</name>
@@ -196,10 +192,6 @@
 								<program>
 									<mainClass>org.dllearner.cli.CLI</mainClass>
 									<name>dl-learner-cli</name>
-								</program>
-								<program>
-									<mainClass>aml.learner.cli.AMLLearner</mainClass>
-									<name>amllearner</name>
 								</program>
 								<program>
 									<mainClass>org.dllearner.cli.Enrichment</mainClass>
@@ -442,7 +434,7 @@
 		
 		<!-- AML Dependencies -->	
 		
-	  	<dependency>
+<!--	  	<dependency>
 	      	<groupId>org.eclipse.emf</groupId>
 	      	<artifactId>org.eclipse.emf.ecore</artifactId>
 	     	<version>2.11.1-v20150805-0538</version>
@@ -488,7 +480,8 @@
 			<groupId>AutomationML</groupId>
 			<artifactId>aml_query</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
+		</dependency> -->
+		
 	</dependencies>
 
 	<reporting>
