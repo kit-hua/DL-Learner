@@ -946,12 +946,15 @@ public abstract class CELOEBase extends AbstractCELA implements Cloneable{
 			System.err.println("IOException: " + ioe.getMessage());
 		}
 		
-		try {
-			this.externLogger.put(log);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if(this.externLogger != null) {
+			try {
+				this.externLogger.put(log);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}	
 		}
+		
 		long logEnd = System.nanoTime();
 		logTime += (logEnd - logStart);
 	}
