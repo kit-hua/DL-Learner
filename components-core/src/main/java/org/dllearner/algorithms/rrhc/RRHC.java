@@ -138,6 +138,13 @@ public class RRHC extends CELOEBase implements Cloneable{
  		
 		while (!terminationCriteriaSatisfied()) {
 		
+//			try {
+//				saveLog("iter: " + countIterations, true);
+//			} catch (FileNotFoundException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+			
 	 		countIterations++;
 			if(getCurrentRuntimeInMilliSeconds() - runtimeLastRec > 60000) {
 				runtimeLastRec = getCurrentRuntimeInMilliSeconds();
@@ -165,7 +172,7 @@ public class RRHC extends CELOEBase implements Cloneable{
 					expandAgain = false;
 				}
 				
-				TreeSet<OWLClassExpression> refinements = refineNode(nextNode);
+				TreeSet<OWLClassExpression> refinements = refineNode(nextNode);			
 //				System.out.println("refining node: " + nextNode.toString());
 				while(!refinements.isEmpty() && !terminationCriteriaSatisfied()) {
 					// pick element from set
@@ -208,6 +215,13 @@ public class RRHC extends CELOEBase implements Cloneable{
 			
 			showIfBetterSolutionsFound();						
 		}
+		
+//		try {
+//			saveLog("stopped", true);
+//		} catch (FileNotFoundException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 		
 		if(!aborted && singleSuggestionMode) {
 			bestEvaluatedDescriptions.add(bestDescription, bestAccuracy, learningProblem);
