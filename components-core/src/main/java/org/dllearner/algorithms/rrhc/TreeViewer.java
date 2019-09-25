@@ -74,7 +74,7 @@ public class TreeViewer extends JPanel {
 	//    private boolean showCeloe = false;
 //	private boolean showUct = true;
 
-	private static final String BenchmarkDir = "/Users/aris/Documents/repositories/ipr/aml/aml_learning/benchmarks/he0-false/0517-predacc/results/0001_tree";
+	private static final String BenchmarkDir = "/Users/aris/Documents/repositories/ipr/aml/aml_learning/benchmarks/0703/configs/family-benchmark/test/";
 
 //	private boolean showHeuristicValues = false;	
 //	private boolean singleStepMode = false;
